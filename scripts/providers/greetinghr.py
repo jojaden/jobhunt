@@ -2,12 +2,13 @@
 """greetinghr (*.career.greetinghr.com). 목록은 /ko/home 의 __NEXT_DATA__ ["openings"], 본문은 /ko/o/{id} 의
 getOpeningById.data.openingsInfo (2026-09-29 실측).
 /ko/home 이 없고 회사 홈페이지에 공고 링크(…/ko/o/{id})만 걸어 둔 곳(오늘의집·쏘카)은 careers_url 에 그 홈페이지를 두고
-ats: greetinghr 로 적으면 링크를 모아 공고마다 상세에서 제목·마감을 읽는다 (2026-10-06)."""
+ats: greetinghr 로 적으면 링크를 모아 공고마다 상세에서 제목·마감을 읽는다 (2026-10-06). 이미 본 공고(scan-history.tsv)는
+어차피 중복으로 빠지므로 상세를 다시 받지 않는다."""
 import json
 import re
 from typing import List, Optional
 
-from jobkit import Job, ShapeError, html_text, http_get
+from jobkit import Job, ShapeError, html_text, http_get, read_history
 
 _ND = re.compile(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', re.S)
 
@@ -36,7 +37,9 @@ def base_of(url: str) -> str:
 def collect(cfg: dict) -> List[Job]:
     base = base_of(cfg["careers_url"])
     ops = None
-    for url in (f"{base}/ko/home", cfg["careers_url"], base):   # 회사 도메인에 붙인 greetinghr 는 첫 화면에 openings 가 있기도 하다
+    first = [cfg["careers_url"]] if cfg["careers_url"].rstrip("/") != base else []   # 경로까지 적어 둔 주소가 목록 화면인 곳이 많다
+    # 회사 도메인에 붙인 greetinghr 는 첫 화면에 openings 가 있기도 하다
+    for url in dict.fromkeys(first + [f"{base}/ko/home", base]):
         try:
             ops = _query(_next_data(url), '"openings"')
         except ShapeError:
@@ -65,8 +68,13 @@ def _from_links(cfg: dict) -> Optional[List[Job]]:
     urls = sorted(set(re.findall(r"https://[\w.-]+\.career\.greetinghr\.com/ko/o/\d+", body))) if status == 200 else []
     if not urls:
         return None
+    seen = {r["url"]: r["title"] for r in read_history()}
     jobs = []
     for url in urls:
+        if url in seen:
+            jobs.append(Job(f"greetinghr:{url.split('//')[1].split('.')[0]}", url.rsplit("/", 1)[1], url,
+                            cfg.get("name") or base_of(url), seen[url]))
+            continue
         oi = ((_query(_next_data(url), "getOpeningById") or {}).get("data") or {}).get("openingsInfo") or {}
         if oi.get("status") != "OPEN":
             continue

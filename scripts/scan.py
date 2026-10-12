@@ -21,6 +21,7 @@ import os
 import re
 import sys
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -28,6 +29,7 @@ import jobkit as K  # noqa: E402
 import providers  # noqa: E402
 
 NEW_HEADER = "## 새로 수집 (선별 전)"
+WORKERS = 32   # 동시에 도는 출처 수. 같은 사이트 요청은 jobkit.http_get 이 한 번에 하나씩, 간격을 두고 보낸다
 
 
 def plan(sources: dict, only):
@@ -45,6 +47,21 @@ def plan(sources: dict, only):
         keep = set(only)
         runs = [r for r in runs if r[0] in keep or r[1].__name__.split(".")[-1] in keep]
     return runs, manual
+
+
+def _collect(run):
+    """(공고 목록, 오류). 한 채널이 깨져도 나머지는 돈다."""
+    try:
+        return run[1].collect(run[2]), None
+    except Exception as e:
+        return None, f"{type(e).__name__}: {e}"
+
+
+def _detail(mod, j):
+    try:
+        j.text = mod.detail(j)
+    except Exception as e:
+        j.text = f"[본문 받기 실패: {type(e).__name__}: {e}]"
 
 
 def main(argv=None):
@@ -73,11 +90,15 @@ def main(argv=None):
     stats, errors, fresh, hist = {}, {}, [], []
     reasons = Counter()
     batch_keys = set()
-    for name, mod, cfg in runs:
-        try:
-            jobs = mod.collect(cfg)
-        except Exception as e:           # 한 채널이 깨져도 나머지는 돈다
-            errors[name] = f"{type(e).__name__}: {e}"
+    pool = ThreadPoolExecutor(WORKERS)
+    futures = [pool.submit(_collect, r) for r in runs]
+    # 본문은 사이트마다 줄 하나(스레드 하나)로 받는다. 앞 출처가 끝나는 대로 시작해 다른 출처 수집과 겹친다
+    lanes, pending = {}, []
+    # 결과는 출처 순서대로 처리한다 (중복 판정이 앞 출처 우선이라, 차례로 돌 때와 결과가 같다)
+    for (name, mod, _), fut in zip(runs, futures):
+        jobs, err = fut.result()
+        if err:
+            errors[name] = err
             continue
         n_new = 0
         for j in jobs:
@@ -109,21 +130,24 @@ def main(argv=None):
                 continue
             n_new += 1
             fresh.append((mod, j))
+            if not a.no_detail:
+                key = K.site(j.url.split("/")[2])
+                if key not in lanes:
+                    lanes[key] = ThreadPoolExecutor(1)
+                pending.append(lanes[key].submit(_detail, mod, j))
         stats[name] = (len(jobs), n_new)
 
-    # 본문
-    for i, (mod, j) in enumerate(fresh, 1):
-        if a.no_detail:
-            continue
+    pool.shutdown()
+    for i, _ in enumerate(as_completed(pending), 1):
         if i % 25 == 0:
-            print(f"  … 본문 {i}/{len(fresh)}", file=sys.stderr)
-        try:
-            j.text = mod.detail(j)
-        except Exception as e:
-            j.text = f"[본문 받기 실패: {type(e).__name__}: {e}]"
-        # 본문을 받은 뒤 근무지가 구체화되면 다시 본다. 공급원이 본문을 보고 뺄 수도 있다 (예: LinkedIn 영어 전용 JD)
-        if not j.extra.get("skip") and K.location_check(j.location, lf) == "block":
-            j.extra["skip"] = "skipped_location"
+            print(f"  … 본문 {i}/{len(pending)}", file=sys.stderr)
+    for lane in lanes.values():
+        lane.shutdown()
+    if not a.no_detail:
+        for _, j in fresh:
+            # 본문을 받은 뒤 근무지가 구체화되면 다시 본다. 공급원이 본문을 보고 뺄 수도 있다 (예: LinkedIn 영어 전용 JD)
+            if not j.extra.get("skip") and K.location_check(j.location, lf) == "block":
+                j.extra["skip"] = "skipped_location"
 
     fresh_ok = [(m, j) for m, j in fresh if not j.extra.get("skip")]
     late = {j.url: j.extra["skip"] for _, j in fresh if j.extra.get("skip")}
