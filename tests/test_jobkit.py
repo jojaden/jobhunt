@@ -140,7 +140,7 @@ class Http(unittest.TestCase):
         self.assertEqual(K.site("toss.im"), "toss.im")
 
     def test_spacing_per_site(self):
-        """같은 사이트는 한 번에 하나씩, 앞 요청을 보낸 때부터 delay 뒤에. 다른 사이트는 기다리지 않는다."""
+        """같은 사이트는 앞 요청이 끝난 뒤 delay 만큼 쉬고, 다른 사이트는 기다리지 않는다."""
         import threading
         import time
         starts, ends = {}, {}
@@ -175,8 +175,7 @@ class Http(unittest.TestCase):
         finally:
             K._OPENER = saved
         first, second = sorted(urls[:2], key=starts.get)
-        self.assertGreaterEqual(starts[second] - starts[first], 0.29)
-        self.assertGreaterEqual(starts[second], ends[first])
+        self.assertGreaterEqual(starts[second] - ends[first], 0.29)
         self.assertLess(starts[urls[2]], starts[second])
 
 
