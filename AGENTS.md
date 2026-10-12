@@ -52,6 +52,7 @@ python3 scripts/check_links.py <url>... | --pdf <pdf>
 python3 scripts/scan.py --dry-run                 # no file writes
 python3 scripts/scan.py --only toss,wanted        # filter by provider module name or sources.yaml board/company name
 python3 scripts/scan.py --no-detail | --seed
+python3 scripts/scan.py --add <found.yaml>             # postings found by hand: same filters, dedup and logging as collected ones
 python3 scripts/alive.py [--write] [--json]
 bash scripts/weekly.sh [--since YYYY-MM-DD]       # scan → alive --write → tracker report → data/search/reports/
 
