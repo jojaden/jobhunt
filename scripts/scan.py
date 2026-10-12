@@ -6,6 +6,7 @@
   python3 scripts/scan.py --dry-run       파일을 쓰지 않고 결과만 출력
   python3 scripts/scan.py --no-detail     본문을 받지 않음 (빠름, 1차 선별 불가)
   python3 scripts/scan.py --seed          지금 열린 공고를 "본 것"으로만 기록 (대기함에 넣지 않음, 다음 실행부터 새 공고만)
+  python3 scripts/scan.py --add 찾은공고.yaml   손으로 찾은 공고를 중복 확인·필터(제목 필터 빼고)에 넣고 기록 (채널 수집은 안 함)
 
 결과
   data/search/pipeline.md   "## 새로 수집 (선별 전)" 섹션에 추가 → AI 에이전트가 brief.md 로 1차 선별
@@ -17,11 +18,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import re
 import sys
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from types import SimpleNamespace
 from urllib.parse import urlsplit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -49,6 +52,22 @@ def plan(sources: dict, only):
     return runs, manual
 
 
+def added(path: str):
+    """--add 파일 → 출처 하나처럼 도는 (이름, 모듈, cfg). 항목: url · company · title · source 필수,
+    location · career [최소, 최대] · posted_at · closes_at · text(본문) 선택. 본문은 받지 않고 적힌 그대로 쓴다.
+    제목 필터는 걸지 않는다: 에이전트가 읽고 고른 공고라, 필터에 없는 제목(예: "웹 애플리케이션 엔지니어")도 넣을 수 있어야 한다."""
+    if not os.path.exists(path):
+        sys.exit(f"{path} 이 없습니다.")
+    jobs = []
+    for it in K.load_yaml(path) or []:
+        jobs.append(K.Job(source=it["source"], id=hashlib.sha1(it["url"].encode()).hexdigest()[:10], url=it["url"],
+                          company=it["company"], title=it["title"], location=it.get("location") or "",
+                          posted_at=str(it.get("posted_at") or ""), closes_at=str(it.get("closes_at") or ""),
+                          text=it.get("text") or "", extra=dict(career=it.get("career"))))
+    mod = SimpleNamespace(__name__="added", collect=lambda cfg: jobs, detail=lambda j: j.text)
+    return [("직접 찾음", mod, {})]
+
+
 def _collect(run, seen_urls):
     """(공고 목록, 오류). 한 채널이 깨져도 나머지는 돈다. seen_urls 는 상세를 공고마다 받는 공급원이 본 공고를 건너뛰는 데 쓴다."""
     try:
@@ -70,6 +89,7 @@ def main(argv=None):
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-detail", action="store_true")
     ap.add_argument("--seed", action="store_true")
+    ap.add_argument("--add", metavar="YAML", help="손으로 찾은 공고 목록 (형식은 added() 설명)")
     a = ap.parse_args(argv)
     if a.seed:
         a.no_detail = True
@@ -86,7 +106,7 @@ def main(argv=None):
     cool = K.cooldown_companies(int(targets.get("reapply_days", 183)))
     black = K.blacklist_companies()
 
-    runs, manual = plan(sources, a.only.split(",") if a.only else None)
+    runs, manual = (added(a.add), []) if a.add else plan(sources, a.only.split(",") if a.only else None)
     stats, errors, fresh, hist = {}, {}, [], []
     reasons = Counter()
     batch_keys = set()
@@ -110,7 +130,7 @@ def main(argv=None):
                 url_seen = j.url in seen
                 if url_seen or keys & tracked or keys & batch_keys:
                     status = "skipped_dup"      # 다른 사이트에 올라온 같은 공고도 URL은 기록해 둔다 (다음 실행에서 다시 안 나오게)
-                elif K.title_ok(j.title, tf):
+                elif not a.add and K.title_ok(j.title, tf):
                     status = "skipped_title"
                 elif K.career_check(j.extra.get("career"), cf):
                     status = "skipped_career"

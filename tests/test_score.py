@@ -5,7 +5,7 @@ import unittest
 
 import yaml
 
-from support import TMP
+from support import TMP, K
 
 import score as S
 
@@ -71,6 +71,30 @@ class Score(unittest.TestCase):
         self.assertEqual([x["line"] for x in out["work"]], ["결제 API 개발", "정산 배치"])
         self.assertEqual(out["required"], [{"line": "Go 3년 이상", "met": ""}])
         self.assertEqual(out["preferred"], [{"line": "쿠버네티스 운영", "met": "", "key": False}])
+
+
+class Apply(unittest.TestCase):
+    def test_labels(self):
+        """선별 전에서 온 공고는 "선별", 대기에 있던 공고를 다시 매기면 "재채점"으로 적는다."""
+        for key, text in (("tracker", ""), ("pipeline", "# 공고 대기함\n\n## 새로 수집 (선별 전)\n\n"
+                          "- [ ] https://a.example/1 | 바사아 | 백엔드 | 서울 | 선별 전 | 가상\n"
+                          "- [ ] https://a.example/2 | 자차카 | SRE | 서울 | 선별 전 | 가상\n\n## 대기\n\n"
+                          "- [ ] https://a.example/3 | 타파하 | 백엔드 | 서울 | triage: PASS 3.8/5 | 가상 | 판정: x\n\n"
+                          "## 지원 완료 — 재지원 쿨다운 (6개월)\n")):
+            with open(K.P[key], "w", encoding="utf-8") as f:
+                f.write(text)
+        files = []
+        for n, gates in ((1, {}), (2, {"location": "fail"}), (3, {"location": "fail"})):
+            files.append(os.path.join(TMP, f"apply{n}.yaml"))
+            with open(files[-1], "w", encoding="utf-8") as f:
+                yaml.safe_dump(j(url=f"https://a.example/{n}", company="가상", title="가상", gates=gates), f, allow_unicode=True)
+        S.apply(files)
+        md = K.read_text(K.P["pipeline"])
+        today = K.TODAY
+        self.assertIn(f"triage: PASS 4.1/5 (선별 {today})", md)
+        self.assertIn(f"## 제외 (선별 {today})\n\n- [x] https://a.example/2", md)
+        self.assertIn(f"## 제외 (재채점 {today})\n\n- [x] https://a.example/3 | 가상 | 가상 | FAIL (재채점 {today}, 이전 PASS 3.8)", md)
+        self.assertNotIn("선별 전 | 가상", md)
 
 
 if __name__ == "__main__":

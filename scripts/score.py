@@ -214,7 +214,7 @@ def apply(files) -> str:
                     old[m.group(0)] = l
     targets = K.load_yaml(K.P["targets"]) or {}
     cool = K.cooldown_companies(int(targets.get("reapply_days", 183)))
-    new_wait, new_fail, n = [], [], 0
+    new_wait, new_fail, n = [], {}, 0
     touched = set()
     for f in files:
         j = K.load_yaml(f)
@@ -224,6 +224,7 @@ def apply(files) -> str:
         r = score(j, cfg)
         prev = re.search(r"triage: (PASS|MARGINAL|FAIL) ?([\d.]+)?", old.get(url, ""))
         was = f", 이전 {prev.group(1)} {prev.group(2) or ''}".rstrip() if prev else ""
+        kind = "재채점" if prev else "선별"        # 대기에 있던 줄을 다시 매기면 재채점, 선별 전이거나 처음이면 선별
         src = K.read_text(os.path.join(K.ROOT, j.get("source", ""))) if j.get("source") else ""
         loc = (re.search(r"^- 근무지: (.*)$", src, re.M) or [None, "?"])[1].strip() or "?"
         rel = os.path.relpath(f, K.ROOT)
@@ -233,11 +234,11 @@ def apply(files) -> str:
             j = dict(j, gate_note=f"재지원 쿨다운 ~{cool[hit]} (점수 {r['total']})")
         if r["triage"] == "FAIL":
             why = j.get("gate_note") or j.get("note") or ""
-            new_fail.append(f"- [x] {url} | {j.get('company')} | {j.get('title')} | FAIL {r['total'] or ''} (재채점 {today}{was}) | {why}".replace("FAIL  (", "FAIL ("))
+            new_fail.setdefault(kind, []).append(f"- [x] {url} | {j.get('company')} | {j.get('title')} | FAIL {r['total'] or ''} ({kind} {today}{was}) | {why}".replace("FAIL  (", "FAIL ("))
         else:
             sc = f"{r['total']}/5" if r["total"] is not None else "?/5 본문 확인 필요"
             new_wait.append((r["total"] or 0, f"- [ ] {url} | {j.get('company')} | {j.get('title')} | {loc} | triage: {r['triage']} {sc} "
-                                              f"(재채점 {today}{was}) | {j.get('note', '')} | 판정: {rel}"))
+                                              f"({kind} {today}{was}) | {j.get('note', '')} | 판정: {rel}"))
         touched.add(url)
         n += 1
     out = []
@@ -256,10 +257,11 @@ def apply(files) -> str:
     md = re.sub(r"\n{3,}", "\n\n", md)
     if not any(h.startswith(WAIT) for h, _ in secs) and new_wait:
         md = K.insert_under(md, WAIT, [l for _, l in sorted(new_wait, key=lambda x: -x[0])])
-    if new_fail:
-        md = K.insert_under(md, f"## 제외 (재채점 {today})", new_fail, before="## 지원 완료")
+    for kind, lines in new_fail.items():
+        md = K.insert_under(md, f"## 제외 ({kind} {today})", lines, before="## 지원 완료")
     K.write_text(K.P["pipeline"], md)
-    return f"pipeline.md 반영 {n}건 (대기 {len(new_wait)} · 제외 {len(new_fail)}, 다른 섹션에 있어 건너뜀 {len([f for f in files]) - n})"
+    n_fail = sum(len(v) for v in new_fail.values())
+    return f"pipeline.md 반영 {n}건 (대기 {len(new_wait)} · 제외 {n_fail}, 다른 섹션에 있어 건너뜀 {len([f for f in files]) - n})"
 
 
 def _row(j, r):
