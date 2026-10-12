@@ -21,6 +21,8 @@ import os
 import re
 import sys
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import urlsplit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -45,6 +47,21 @@ def plan(sources: dict, only):
         keep = set(only)
         runs = [r for r in runs if r[0] in keep or r[1].__name__.split(".")[-1] in keep]
     return runs, manual
+
+
+def _collect(run, seen_urls):
+    """(공고 목록, 오류). 한 채널이 깨져도 나머지는 돈다. seen_urls 는 상세를 공고마다 받는 공급원이 본 공고를 건너뛰는 데 쓴다."""
+    try:
+        return run[1].collect(dict(run[2], seen_urls=seen_urls)), None
+    except Exception as e:
+        return None, f"{type(e).__name__}: {e}"
+
+
+def _detail(mod, j):
+    try:
+        j.text = mod.detail(j)
+    except Exception as e:
+        j.text = f"[본문 받기 실패: {type(e).__name__}: {e}]"
 
 
 def main(argv=None):
@@ -73,57 +90,73 @@ def main(argv=None):
     stats, errors, fresh, hist = {}, {}, [], []
     reasons = Counter()
     batch_keys = set()
-    for name, mod, cfg in runs:
-        try:
-            jobs = mod.collect(cfg)
-        except Exception as e:           # 한 채널이 깨져도 나머지는 돈다
-            errors[name] = f"{type(e).__name__}: {e}"
-            continue
-        n_new = 0
-        for j in jobs:
-            status = None
-            keys = K.dup_keys(j.company, j.title)
-            url_seen = j.url in seen
-            if url_seen or keys & tracked or keys & batch_keys:
-                status = "skipped_dup"      # 다른 사이트에 올라온 같은 공고도 URL은 기록해 둔다 (다음 실행에서 다시 안 나오게)
-            elif K.title_ok(j.title, tf):
-                status = "skipped_title"
-            elif K.career_check(j.extra.get("career"), cf):
-                status = "skipped_career"
-            elif K.location_check(j.location, lf) == "block":
-                status = "skipped_location"
-            elif K.company_in(j.company, black):
-                status = "skipped_blacklist"
-            elif K.company_in(j.company, cool, exact=True):
-                status = "skipped_cooldown"
-            elif a.seed:
-                status = "seeded"
-            batch_keys |= keys
-            if not url_seen:
-                seen.add(j.url)
-                hist.append(dict(url=j.url, first_seen=K.TODAY, portal=j.source, title=j.title, company=j.company,
-                                 status=status or "added", location=j.location, posted_at=j.posted_at,
-                                 normalized_company=K.norm_company(j.company)))
-            if status:
-                reasons[status] += 1
+    # 출처마다 스레드 하나. 같은 사이트 요청은 jobkit.http_get 이 한 번에 하나씩, 간격을 두고 보낸다
+    pool = ThreadPoolExecutor(max(len(runs), 1))
+    known = frozenset(seen)
+    futures = [pool.submit(_collect, r, known) for r in runs]
+    # 본문은 사이트마다 줄 하나(스레드 하나)로 받는다. 앞 출처가 끝나는 대로 시작해 다른 출처 수집과 겹친다
+    lanes, pending = {}, []
+    try:
+        # 결과는 출처 순서대로 처리한다 (중복 판정이 앞 출처 우선이라, 차례로 돌 때와 결과가 같다)
+        for (name, mod, _), fut in zip(runs, futures):
+            jobs, err = fut.result()
+            if err:
+                errors[name] = err
                 continue
-            n_new += 1
-            fresh.append((mod, j))
-        stats[name] = (len(jobs), n_new)
+            n_new = 0
+            for j in jobs:
+                status = None
+                keys = K.dup_keys(j.company, j.title)
+                url_seen = j.url in seen
+                if url_seen or keys & tracked or keys & batch_keys:
+                    status = "skipped_dup"      # 다른 사이트에 올라온 같은 공고도 URL은 기록해 둔다 (다음 실행에서 다시 안 나오게)
+                elif K.title_ok(j.title, tf):
+                    status = "skipped_title"
+                elif K.career_check(j.extra.get("career"), cf):
+                    status = "skipped_career"
+                elif K.location_check(j.location, lf) == "block":
+                    status = "skipped_location"
+                elif K.company_in(j.company, black):
+                    status = "skipped_blacklist"
+                elif K.company_in(j.company, cool, exact=True):
+                    status = "skipped_cooldown"
+                elif a.seed:
+                    status = "seeded"
+                batch_keys |= keys
+                if not url_seen:
+                    seen.add(j.url)
+                    hist.append(dict(url=j.url, first_seen=K.TODAY, portal=j.source, title=j.title, company=j.company,
+                                     status=status or "added", location=j.location, posted_at=j.posted_at,
+                                     normalized_company=K.norm_company(j.company)))
+                if status:
+                    reasons[status] += 1
+                    continue
+                n_new += 1
+                fresh.append((mod, j))
+                if not a.no_detail:
+                    key = K.site(urlsplit(j.url).netloc)
+                    if key not in lanes:
+                        lanes[key] = ThreadPoolExecutor(1)
+                    pending.append(lanes[key].submit(_detail, mod, j))
+            stats[name] = (len(jobs), n_new)
 
-    # 본문
-    for i, (mod, j) in enumerate(fresh, 1):
-        if a.no_detail:
-            continue
-        if i % 25 == 0:
-            print(f"  … 본문 {i}/{len(fresh)}", file=sys.stderr)
-        try:
-            j.text = mod.detail(j)
-        except Exception as e:
-            j.text = f"[본문 받기 실패: {type(e).__name__}: {e}]"
-        # 본문을 받은 뒤 근무지가 구체화되면 다시 본다. 공급원이 본문을 보고 뺄 수도 있다 (예: LinkedIn 영어 전용 JD)
-        if not j.extra.get("skip") and K.location_check(j.location, lf) == "block":
-            j.extra["skip"] = "skipped_location"
+        for i, _ in enumerate(as_completed(pending), 1):
+            if i % 25 == 0:
+                print(f"  … 본문 {i}/{len(pending)}", file=sys.stderr)
+    except KeyboardInterrupt:
+        # 파일은 수집이 다 끝난 뒤에 쓰므로 남는 것이 없다. 도는 수집 스레드를 기다리지 않고 바로 끝낸다
+        print("\n중단 — 쓴 파일 없음", file=sys.stderr, flush=True)
+        os._exit(130)
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+        for lane in lanes.values():
+            lane.shutdown(wait=False, cancel_futures=True)
+
+    if not a.no_detail:
+        for _, j in fresh:
+            # 본문을 받은 뒤 근무지가 구체화되면 다시 본다. 공급원이 본문을 보고 뺄 수도 있다 (예: LinkedIn 영어 전용 JD)
+            if not j.extra.get("skip") and K.location_check(j.location, lf) == "block":
+                j.extra["skip"] = "skipped_location"
 
     fresh_ok = [(m, j) for m, j in fresh if not j.extra.get("skip")]
     late = {j.url: j.extra["skip"] for _, j in fresh if j.extra.get("skip")}

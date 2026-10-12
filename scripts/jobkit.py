@@ -9,6 +9,7 @@ import html
 import json
 import os
 import re
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -50,23 +51,37 @@ class _Redirect308(urllib.request.HTTPRedirectHandler):
 _OPENER = urllib.request.build_opener(_Redirect308)
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
 _last: Dict[str, float] = {}
+_locks: Dict[str, threading.Lock] = {}
+_locks_guard = threading.Lock()
+_KR_2LD = {"co", "or", "go", "ac", "ne", "re", "pe"}
+
+
+def site(host: str) -> str:
+    """요청 간격을 두는 단위. 등록 도메인으로 묶는다 (a.greetinghr.com · b.greetinghr.com → greetinghr.com)."""
+    parts = host.split(":")[0].lower().split(".")
+    n = 3 if len(parts) >= 3 and parts[-1] == "kr" and parts[-2] in _KR_2LD else 2
+    return ".".join(parts[-n:])
 
 
 def http_get(url: str, accept: str = "application/json", delay: float = 1.0, timeout: int = 20, headers: Optional[dict] = None,
              data: Optional[bytes] = None):
-    """(status, text). 같은 호스트에는 delay 초 간격을 둔다 (references/sources.md 공통 규칙). data 가 있으면 POST."""
-    host = url.split("/")[2]
-    wait = _last.get(host, 0) + delay - time.time()
-    if wait > 0:
-        time.sleep(wait)
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": accept, **(headers or {})}, data=data)
-    try:
-        with _OPENER.open(req, timeout=timeout) as r:
-            status, body = r.status, r.read().decode("utf-8", "replace")
-    except urllib.error.HTTPError as e:
-        status, body = e.code, ""
-    finally:
-        _last[host] = time.time()
+    """(status, text). 같은 사이트에는 한 번에 하나씩, 앞 요청이 끝난 뒤 delay 초 간격을 둔다 (references/sources.md 공통 규칙).
+    스레드에서 동시에 불러도 지켜진다. data 가 있으면 POST."""
+    key = site(url.split("/")[2])
+    with _locks_guard:
+        lock = _locks.setdefault(key, threading.Lock())
+    with lock:
+        wait = _last.get(key, 0) + delay - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": accept, **(headers or {})}, data=data)
+        try:
+            with _OPENER.open(req, timeout=timeout) as r:
+                status, body = r.status, r.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            status, body = e.code, ""
+        finally:
+            _last[key] = time.time()
     return status, body
 
 
@@ -129,10 +144,11 @@ def _aliases() -> Dict[str, str]:
     """sources.yaml company_aliases: {대표 이름: [다른 표기, …]} → 정규화 이름 → 대표 이름."""
     global _ALIAS
     if _ALIAS is None:
-        _ALIAS = {}
+        alias = {}   # 다 채운 뒤에 넣는다 (수집 스레드가 채우는 중인 빈 dict 를 읽지 않게)
         for canon, names in (load_yaml(P["sources"]).get("company_aliases") or {}).items():
             for n in [canon] + list(names or []):
-                _ALIAS[_norm_raw(n)] = _norm_raw(canon)
+                alias[_norm_raw(n)] = _norm_raw(canon)
+        _ALIAS = alias
     return _ALIAS
 
 

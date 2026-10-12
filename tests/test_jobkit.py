@@ -132,5 +132,52 @@ class Files(unittest.TestCase):
         self.assertEqual(set(rows[1]), set(K.HISTORY_COLS))
 
 
+class Http(unittest.TestCase):
+    def test_site(self):
+        self.assertEqual(K.site("a.career.greetinghr.com"), "greetinghr.com")
+        self.assertEqual(K.site("jumpit.saramin.co.kr"), "saramin.co.kr")
+        self.assertEqual(K.site("www.wanted.co.kr:443"), "wanted.co.kr")
+        self.assertEqual(K.site("toss.im"), "toss.im")
+
+    def test_spacing_per_site(self):
+        """같은 사이트는 앞 요청이 끝난 뒤 delay 만큼 쉬고, 다른 사이트는 기다리지 않는다."""
+        import threading
+        import time
+        starts, ends = {}, {}
+
+        class Resp:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b""
+
+        class Opener:
+            def open(self, req, timeout):
+                starts[req.full_url] = time.time()
+                time.sleep(0.05)
+                ends[req.full_url] = time.time()
+                return Resp()
+
+        saved, K._OPENER = K._OPENER, Opener()
+        try:
+            urls = ["https://a.spacing.test/1", "https://b.spacing.test/2", "https://other.test/3"]
+            ts = [threading.Thread(target=K.http_get, args=(u,), kwargs=dict(delay=0.3)) for u in urls]
+            for t in ts:
+                t.start()
+            for t in ts:
+                t.join()
+        finally:
+            K._OPENER = saved
+        first, second = sorted(urls[:2], key=starts.get)
+        self.assertGreaterEqual(starts[second] - ends[first], 0.29)
+        self.assertLess(starts[urls[2]], starts[second])
+
+
 if __name__ == "__main__":
     unittest.main()

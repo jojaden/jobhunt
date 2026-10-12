@@ -94,5 +94,17 @@ for _n in NAMES:
         setattr(ProviderFixtures, f"test_{_n}", _make(_n))
 
 
+class GreetinghrSeen(unittest.TestCase):
+    def test_links_skip_seen(self):
+        """홈페이지 링크 방식: cfg 의 seen_urls(scan.py 가 넘김)에 있는 공고는 상세를 받지 않고 건너뛴다."""
+        case = next(c for c in load_fixture("providers", "greetinghr.json")["cases"] if "링크" in c["name"])
+        seen_url = "https://rabaso.career.greetinghr.com/ko/o/201"
+        responses = {u: r for u, r in case["responses"].items() if u != seen_url}
+        with replay(responses) as fake:
+            jobs = providers.greetinghr.collect(dict(case["cfg"], seen_urls=frozenset([seen_url])))
+        self.assertNotIn(seen_url, [u for u, _ in fake.calls])
+        self.assertNotIn(seen_url, [j.url for j in jobs])
+
+
 if __name__ == "__main__":
     unittest.main()

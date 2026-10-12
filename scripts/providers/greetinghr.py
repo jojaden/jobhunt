@@ -2,7 +2,8 @@
 """greetinghr (*.career.greetinghr.com). 목록은 /ko/home 의 __NEXT_DATA__ ["openings"], 본문은 /ko/o/{id} 의
 getOpeningById.data.openingsInfo (2026-09-29 실측).
 /ko/home 이 없고 회사 홈페이지에 공고 링크(…/ko/o/{id})만 걸어 둔 곳(오늘의집·쏘카)은 careers_url 에 그 홈페이지를 두고
-ats: greetinghr 로 적으면 링크를 모아 공고마다 상세에서 제목·마감을 읽는다 (2026-10-06)."""
+ats: greetinghr 로 적으면 링크를 모아 공고마다 상세에서 제목·마감을 읽는다 (2026-10-06). cfg 의 seen_urls(scan.py 가 넘기는
+이미 본 주소)에 있는 공고는 어차피 중복으로 빠지므로 상세를 받지 않고 건너뛴다."""
 import json
 import re
 from typing import List, Optional
@@ -36,7 +37,8 @@ def base_of(url: str) -> str:
 def collect(cfg: dict) -> List[Job]:
     base = base_of(cfg["careers_url"])
     ops = None
-    for url in (f"{base}/ko/home", cfg["careers_url"], base):   # 회사 도메인에 붙인 greetinghr 는 첫 화면에 openings 가 있기도 하다
+    # 회사 도메인에 붙인 greetinghr 는 첫 화면에 openings 가 있기도 하다. careers_url 이 /ko/home 이나 첫 화면이면 두 번 받지 않는다
+    for url in dict.fromkeys((f"{base}/ko/home", cfg["careers_url"], base)):
         try:
             ops = _query(_next_data(url), '"openings"')
         except ShapeError:
@@ -65,8 +67,11 @@ def _from_links(cfg: dict) -> Optional[List[Job]]:
     urls = sorted(set(re.findall(r"https://[\w.-]+\.career\.greetinghr\.com/ko/o/\d+", body))) if status == 200 else []
     if not urls:
         return None
+    seen = cfg.get("seen_urls") or ()
     jobs = []
     for url in urls:
+        if url in seen:
+            continue
         oi = ((_query(_next_data(url), "getOpeningById") or {}).get("data") or {}).get("openingsInfo") or {}
         if oi.get("status") != "OPEN":
             continue
