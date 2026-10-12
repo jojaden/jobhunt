@@ -22,6 +22,7 @@ python3 scripts/<고친 스크립트>.py ...     # 실제로 한 번 돌려 본�
 ```
 
 PR을 올리면 CI가 같은 테스트(Ubuntu·macOS × Python 3.9·3.12), ruff, 개인 자료 검사, Ubuntu 설치·예시 이력서 빌드를 돌립니다.
+`main` 에는 PR 로만 들어갑니다. CI 를 모두 통과하고 관리자(코드 소유자, [`.github/CODEOWNERS`](.github/CODEOWNERS))의 승인을 받아야 병합됩니다.
 
 ## 3. 저장소 규칙
 
