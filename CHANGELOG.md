@@ -16,7 +16,8 @@
 - Python 3.10 이상이 필요함 (3.9 지원 끝, Playwright 최신판이 3.10+) (#40)
 - 설치가 uv 방식으로 바뀜: 한 줄 설치가 uv(없으면 설치) → `jobhunt` 명령 → `jobhunt setup`(개인 자료 폴더 준비 · 스킬 연결 · Chromium·폰트·poppler). 도구는 uv 가 관리하는 폴더에, 개인 자료는 `~/jobhunt/data` 에 따로 있음. 지침(SKILL.md · modes/ · references/)과 README 의 명령은 `jobhunt …` 으로. `jobhunt --version`(커밋 포함) · `jobhunt changes <버전>` · `jobhunt git-log` 추가 (#42)
 - Claude Code · Codex 플러그인: `claude plugin install jobhunt --marketplace jojaden/jobhunt`, `codex plugin marketplace add jojaden/jobhunt` → `codex plugin add jobhunt@jobhunt`. 플러그인은 설치된 jobhunt 의 지침으로 안내만 해서 버전이 어긋나지 않고, 플러그인이 있는 에이전트에는 `jobhunt setup` 이 스킬 링크를 만들지 않음 (#44)
-- **data/ 이전:** 예전에 git clone 으로 설치했다면 같은 설치 명령을 다시 실행하세요. `~/jobhunt/data` 는 그대로 두고, git 이 관리하던 코드·지침 파일과 `.git` 을 `~/jobhunt/.old-repo/` 로 옮깁니다(지우지 않음, 고친 파일도 그대로). cron·launchd 가 `~/jobhunt/scripts/weekly.sh` 를 부르면 그 경로가 `jobhunt weekly` 를 부르도록 이어 둡니다 (#42)
+- 1차 선별: `score init` 이 자격요건 줄에서 쓰지 않는 언어를 꼭 요구하는 공고에 언어(stack) 관문 초안(`fail` + 근거 줄)을 채움. 에이전트는 그 줄만 확인. 기존 판정 719건과 대조해 통과시킨 공고를 잘못 떨어뜨린 경우 0건, 언어 관문 탈락의 59%를 초안으로 잡음. 또 "Preferred Qualifications"·"이런 분이면 더 좋아요" 아래 우대 줄이 자격요건으로 들어가던 것을 고침 (#46)
+- **data/ 이전:** 예전에 git clone 으로 설치했다면 같은 설치 명령을 다시 실행하세요. `~/jobhunt/data` 는 그대로 두고, git 이 관리하던 코드·지침 파일과 `.git` 을 `~/jobhunt/.old-repo/` 로 옮깁니다(지우지 않음, 고친 파일도 그대로). cron·launchd 가 `~/jobhunt/scripts/weekly.sh` 를 부르면 그 경로가 `jobhunt weekly` 를 부르도록 이어 둡니다 (#42). 언어 관문 초안을 쓰려면 `data/profile/targets.yaml` 의 `gates` 에 `stack_languages: [실무로 쓴 언어, …]` 를 넣으세요(넣지 않으면 지금과 같음) (#46)
 
 ## v1.1.0 — 2026-10-08
 

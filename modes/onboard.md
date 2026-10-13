@@ -22,7 +22,7 @@ If `targets.yaml` or `brief.md` is still the example and the user starts scan or
 1. 2–4 target roles with priority, plus adjacent roles (worth considering if the move is feasible)
 2. How to show years of experience, desired salary range and floor (pre-tax)
 3. Location conditions, remote vs office preference
-4. Exclusions: language (English required, etc.), stack (a required language the user has never used), employment type (SI · dispatch · contract), company size
+4. Exclusions: language (English required, etc.), stack (a required language the user has never used; also write the languages the user has used at work to `gates.stack_languages`, which lets `jobhunt score init` pre-fill the stack gate), employment type (SI · dispatch · contract), company size
 5. Why they are leaving and the environment they want (take their own words verbatim into `narrative.exit_story`)
 6. Bonus and penalty signals, priority-company criteria
 

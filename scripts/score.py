@@ -39,9 +39,23 @@ DOMAIN_NEW_CAP = 3.9                  # 팀 제품의 전문 기술 도메인이
 REVIEW = (-1.0, 0.3)                  # 에이전트 검토 조정 폭 (내림, 올림)
 RAW_SPAN = (3.5, 5.5)                 # 등급 범위 안에서 원점수를 펼치는 구간
 VERDICTS = [(4.0, "지원 권장", "PASS"), (3.5, "지원 고려", "PASS"), (3.0, "보류", "MARGINAL"), (0, "제외", "FAIL")]
-SECTIONS = [("work", r"주요\s*업무|담당\s*업무|하는\s*일|이런\s*일|합류하면|What you('|’)ll do|Responsibilit"),
-            ("required", r"자격\s*요건|필수|지원\s*자격|이런\s*분|Requirements|Qualifications|Must"),
-            ("preferred", r"우대|Preferred|Nice to have|Plus")]
+# 우대를 먼저 본다: "Preferred Qualifications", "이런 분이면 더 좋아요" 는 자격요건 낱말도 품고 있다
+SECTIONS = [("preferred", r"우대|Preferred|Nice to have|Plus|더\s*좋(아요|습니다|겠)"),
+            ("work", r"주요\s*업무|담당\s*업무|하는\s*일|이런\s*일|합류하면|What you('|’)ll do|Responsibilit"),
+            ("required", r"자격\s*요건|필수|지원\s*자격|이런\s*분|Requirements|Qualifications|Must")]
+
+# stack 관문 초안: 자격요건 줄의 언어(와 그 언어를 뜻하는 프레임워크)
+LANG_PATS = {
+    "Java": r"Java|JVM|Spring(\s*Boot)?|JPA", "Kotlin": r"Kotlin", "Python": r"Python|Django|FastAPI|Flask",
+    "Node.js": r"Node\.?js|NestJS|Nest\.js|TypeScript|JavaScript", "C#": r"C#|\.NET", "C++": r"C\+\+",
+    "Ruby": r"Ruby|(?-i:Rails)", "PHP": r"PHP|Laravel|CodeIgniter", "Scala": r"Scala", "Rust": r"(?-i:Rust)",
+    "Go": r"(?-i:Go|GO)|Golang", "Shell": r"Shell|Bash",
+}   # 앞뒤가 영문자가 아닐 때만: scalable·Javadoc·Kubernetes node 는 언어가 아니다
+# 언어를 특정하지 않은 것으로 보는 줄: 열린 목록, 대체 허용, 필수 아님
+_OPEN = (r"등|예[:)]|예를\s*들|하나\s*이상|1\s*개\s*이상|가리지|국한되지|무관|상관\s*없|관계\s*없|이에\s*준하는|그에\s*준하는|유사한"
+         r"|필수가?\s*아닙|익숙하지\s*않|such as|e\.g\.|or similar|or equivalent|one or more|at least one|any\s+(programming\s+)?language")
+_SOFT = r"우대|좋아요|좋습니다|더\s*좋|이면\s*좋|키울\s*수|plus|preferred|nice to have|학습\s*의지|기본\s*이해|관심"
+_NEED = r"경험|경력|능숙|능통|숙련|숙달|익숙|이해|역량|활용|가능\s*하|개발|운영|다뤄|사용해|사용\s*언어|experience|proficien|familiar|fluent|expert|knowledge|skilled|strong"
 
 
 def config() -> dict:
@@ -183,7 +197,36 @@ def init(path: str) -> dict:
             item = re.sub(r"^([•·\-*▪◦・●○]|\d+[.)])\s*", "", line)
             if len(item) > 3:
                 out[cur].append({"line": item, **({"fit": ""} if cur == "work" else {"met": ""}), **({"key": False} if cur == "preferred" else {})})
+    known = ((K.load_yaml(K.P["targets"]) or {}).get("gates") or {}).get("stack_languages")
+    known = [known] if isinstance(known, str) else known
+    hit = stack_draft(out["required"], known)
+    if hit:
+        out["gates"]["stack"] = "fail"
+        out["gate_note"] = f"자격요건 '{hit}' — {'/'.join(known)} 없음"
+        out["draft"] = "stack: score init 이 자격요건 줄로 채운 초안. 본문에서 꼭 필요한 요건인지 확인하고, 아니면 비우고 판정"
     return out
+
+
+def _langs(line: str):
+    return [k for k, p in LANG_PATS.items() if re.search(rf"(?<![A-Za-z])(?:{p})(?![A-Za-z])", line, re.I)]
+
+
+def stack_draft(required, known) -> str:
+    """자격요건이 사용자 언어(known)에 없는 언어를 꼭 요구하면 그 줄, 아니면 "".
+    확실한 경우만 고른다: 어느 줄이든 사용자 언어나 대체 허용이 있으면 초안을 내지 않는다 (기존 판정과 대조해 정함)."""
+    if not known or not required:
+        return ""
+    mine = {k for k in LANG_PATS for name in known if _langs(name) == [k]} | set(known)   # TypeScript → Node.js, Spring → Java
+    lines = [x["line"] for x in required]
+    if any(set(_langs(x)) & mine or any(re.search(rf"(?<![A-Za-z]){re.escape(n)}(?![A-Za-z])", x, re.I) for n in known)
+           or re.search(r"언어\s*무관|이에\s*준하는|그에\s*준하는", x) for x in lines):
+        return ""
+    for x in lines:
+        if re.search(_OPEN, x, re.I) or re.search(_SOFT, x, re.I) or not re.search(_NEED, x, re.I):
+            continue
+        if _langs(x):
+            return x
+    return ""
 
 
 PENDING, WAIT = "## 새로 수집 (선별 전)", "## 대기"

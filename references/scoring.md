@@ -58,7 +58,7 @@ note: "한 줄 근거"
 
 ## Classification
 
-**gates** (`location` · `gates` · `compensation` in `targets.yaml`): `pass` / `fail` / `unclear`. Any `fail` → excluded with no score; `unclear` never changes the score. Location and compensation are judged here only. A posting that does not state the salary is `comp: unclear`.
+**gates** (`location` · `gates` · `compensation` in `targets.yaml`): `pass` / `fail` / `unclear`. Any `fail` → excluded with no score; `unclear` never changes the score. Location and compensation are judged here only. A posting that does not state the salary is `comp: unclear`. `score init` may pre-fill `stack: fail` as a draft (`draft` key, see `modes/scan.md` step 4); confirm it against the body before keeping it.
 
 **work.fit** — has the user done this work?
 

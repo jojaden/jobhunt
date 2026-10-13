@@ -72,6 +72,57 @@ class Score(unittest.TestCase):
         self.assertEqual(out["required"], [{"line": "Go 3년 이상", "met": ""}])
         self.assertEqual(out["preferred"], [{"line": "쿠버네티스 운영", "met": "", "key": False}])
 
+    def test_init_preferred_headings(self):
+        """자격요건 낱말을 품은 우대 머리말은 우대로. "더 좋은 …" 같은 문장은 머리말이 아니다."""
+        path = os.path.join(TMP, "body2.md")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("# 가나다랩 — 서버\n\nQualifications\n- 서버 개발 3년\n\nPreferred Qualifications\n- Kafka 운영\n\n"
+                    "이런 분과 함께하고 싶어요\n- 장애 대응 경험\n더 좋은 코드를 함께 고민하는 분\n\n이런 분이면 더 좋아요\n- 결제 도메인\n")
+        out = S.init(path)
+        self.assertEqual([x["line"] for x in out["required"]], ["서버 개발 3년", "장애 대응 경험", "더 좋은 코드를 함께 고민하는 분"])
+        self.assertEqual([x["line"] for x in out["preferred"]], ["Kafka 운영", "결제 도메인"])
+
+    def test_stack_draft(self):
+        """사용자 언어에 없는 언어를 꼭 요구할 때만 근거 줄. 열린 목록·대체 허용·사용자 언어 언급·우대 투·기술 나열은 초안 없음."""
+        req = lambda *ls: [{"line": x} for x in ls]
+        known = ["Go", "Shell"]
+        self.assertEqual(S.stack_draft(req("Java/Spring 기반 서버 개발 경험 3년 이상"), known), "Java/Spring 기반 서버 개발 경험 3년 이상")
+        self.assertEqual(S.stack_draft(req("NestJS로 서비스를 운영해 보신 분"), known), "NestJS로 서비스를 운영해 보신 분")
+        for lines in (("Java, Python 등 하나 이상의 언어로 개발한 경험",),
+                      ("Kotlin 또는 Go 로 서버를 개발한 경험",),
+                      ("Java/Spring 경험", "Go 언어 사용 경험"),
+                      ("Kotlin/Spring 4년 이상 또는 이에 준하는(언어 무관) 역량",),
+                      ("Python 경험이 있으면 좋아요",),
+                      ("Kotlin, Spring Boot, JPA, gRPC",),
+                      ("JavaScript 가 아닌 Go 경험",),
+                      ("JAVA 또는 GO 개발 경험",),
+                      ("Experience designing scalable distributed systems",),
+                      ("Kubernetes node 장애 대응 및 운영 경험",),
+                      ("Javadoc 기반 API 문서화 경험",),
+                      ("AI guard rails 설계 경험",)):
+            self.assertEqual(S.stack_draft(req(*lines), known), "", lines)
+        self.assertEqual(S.stack_draft(req("Java 개발 경험"), []), "")     # 사용자 언어를 적지 않았으면 초안 없음
+        self.assertEqual(S.stack_draft(req("Go 개발 경험"), ["Java"]), "Go 개발 경험")
+        self.assertEqual(S.stack_draft(req("Google Cloud 개발 경험"), ["Java"]), "")   # Go 는 낱말로만
+        self.assertEqual(S.stack_draft(req("Node.js 서버 개발 경험"), ["TypeScript"]), "")   # 같은 언어의 다른 이름
+        self.assertEqual(S.stack_draft(req("Spring Boot 개발 경험"), ["Java"]), "")
+
+    def test_init_stack_draft(self):
+        """targets.yaml gates.stack_languages 가 있으면 init 이 stack 관문 초안과 근거를 채운다."""
+        path = os.path.join(TMP, "body3.md")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("# 가나다랩 — 서버\n\n## 자격요건\n- Java/Spring 서버 개발 경험 3년 이상\n\n## 우대사항\n- Go 경험\n")
+        with open(K.P["targets"], "w", encoding="utf-8") as f:
+            f.write("gates:\n  stack_languages: [Go, Shell]\n")
+        try:
+            out = S.init(path)
+        finally:
+            os.remove(K.P["targets"])
+        self.assertEqual(out["gates"]["stack"], "fail")
+        self.assertEqual(out["gate_note"], "자격요건 'Java/Spring 서버 개발 경험 3년 이상' — Go/Shell 없음")
+        self.assertIn("draft", out)
+        self.assertNotIn("draft", S.init(path))      # 설정이 없으면 초안 없음
+
 
 class Apply(unittest.TestCase):
     def test_labels(self):
