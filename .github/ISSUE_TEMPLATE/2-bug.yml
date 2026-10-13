@@ -28,7 +28,7 @@ body:
     id: version
     attributes:
       label: 버전
-      description: "`git describe --tags --always` 결과"
+      description: "`jobhunt --version` 결과 (저장소 clone 이면 `git describe --tags --always`)"
   - type: dropdown
     id: os
     attributes:
@@ -38,7 +38,7 @@ body:
     id: python
     attributes:
       label: Python 버전
-      description: "`python3 -V` 결과"
+      description: "저장소 clone 에서 돌렸을 때만 `python3 -V` 결과 (설치 명령으로 설치했다면 비워 두세요, uv 가 Python 3.12 를 씁니다)"
   - type: checkboxes
     id: checks
     attributes:

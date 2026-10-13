@@ -75,4 +75,4 @@ Scripts parse these headings and markers; keep them verbatim.
 ## Weekly scan
 
 `jobhunt weekly` runs collect → closing check → combined report in one go and saves `data/search/reports/YYYY-MM-DD.md` (no LLM; fine to run from cron or launchd). Then continue from step 4 (first-pass screening).
-If the user asks "주기적으로 찾아줘", register `weekly.sh` with `/loop` or cron/launchd running on this machine (cloud `/schedule` cannot reach this machine's `data/`). Write the registered interval into `data/preferences/standing.md`.
+If the user asks "주기적으로 찾아줘", register `jobhunt weekly` with `/loop` or cron/launchd running on this machine (cloud `/schedule` cannot reach this machine's `data/`). Write the registered interval into `data/preferences/standing.md`.

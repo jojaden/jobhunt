@@ -25,8 +25,8 @@ body:
   - type: textarea
     id: output
     attributes:
-      label: scan.py 출력
-      description: "`python3 scripts/scan.py --dry-run --only <수집기>` 출력에서 해당 부분"
+      label: 수집 출력
+      description: "`jobhunt scan --dry-run --only <수집기>` 출력에서 해당 부분 (저장소 clone 이면 `python3 scripts/cli.py scan …`)"
       render: shell
     validations:
       required: true
@@ -39,7 +39,7 @@ body:
     id: version
     attributes:
       label: 버전
-      description: "`git describe --tags --always` 결과"
+      description: "`jobhunt --version` 결과 (저장소 clone 이면 `git describe --tags --always`)"
   - type: checkboxes
     id: checks
     attributes:
