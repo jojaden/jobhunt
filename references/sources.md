@@ -82,10 +82,10 @@ Find companies that rarely post on job boards and post only on their own career 
 Only verified companies are added to automatic collection; the rest get `method: browser`.
 
 ```bash
-python3 scripts/discover.py collect            # gather candidates (~20 min with Wanted, seconds with --skip-wanted)
-python3 scripts/discover.py probe --top 150    # find career sites for top-scoring candidates
-python3 scripts/discover.py report             # candidate table
-python3 scripts/discover.py promote --dry-run  # preview companies to add → after user confirmation, run without --dry-run
+jobhunt discover collect            # gather candidates (~20 min with Wanted, seconds with --skip-wanted)
+jobhunt discover probe --top 150    # find career sites for top-scoring candidates
+jobhunt discover report             # candidate table
+jobhunt discover promote --dry-run  # preview companies to add → after user confirmation, run without --dry-run
 ```
 
 **Not found from the homepage:** for sites whose links are drawn by script or that block bots (403), list them with `discover.py missing`, find the career site URL with Firecrawl (`firecrawl_search "{회사} 채용"`, or WebSearch without it; the free plan returns 429 past ~3 requests at once, so send 2–3 at a time), and feed a `회사<TAB>URL<TAB>출처` file to `discover.py set <file>`. The script does ATS detection and list verification. For a company with no career site, put `-` in the URL slot.

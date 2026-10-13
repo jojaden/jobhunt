@@ -38,4 +38,4 @@ Pick the order that fits the question; never a chronology of life events.
 ## File and check
 
 - File: `data/applications/covers/<회사>_<포지션>.yaml` (format in `data/applications/cover.example.yaml`).
-- Check: `python3 scripts/cover_check.py <file>` — character counts per question against the limit, plus the same banned-word, translationese, in-house-name, and placeholder rules as the resume (`style_rules.yaml`).
+- Check: `jobhunt cover-check <file>` — character counts per question against the limit, plus the same banned-word, translationese, in-house-name, and placeholder rules as the resume (`style_rules.yaml`).

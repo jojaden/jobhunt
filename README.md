@@ -42,13 +42,13 @@
 
 ## 🖼 미리보기
 
-### 공고 현황표 (`scripts/report_html.py`)
+### 공고 현황표 (`jobhunt report`)
 
-가상 회사로 만든 견본입니다(`python3 scripts/report_html.py --demo`). 등본 같은 괘선 서식에 판정 구간별 대장, 지원 권장 도장, 마감 D-일수, 항목별 점수 붙임이 들어갑니다. HTML 한 파일이라 어떤 브라우저·AI 에이전트에서도 열리고, HTML 페이지를 올려 주는 곳(예: Claude Artifact)에는 `--fragment` 판을 올립니다. 디자인 기준은 [`DESIGN.md`](DESIGN.md).
+가상 회사로 만든 견본입니다(`jobhunt report --demo`). 등본 같은 괘선 서식에 판정 구간별 대장, 지원 권장 도장, 마감 D-일수, 항목별 점수 붙임이 들어갑니다. HTML 한 파일이라 어떤 브라우저·AI 에이전트에서도 열리고, HTML 페이지를 올려 주는 곳(예: Claude Artifact)에는 `--fragment` 판을 올립니다. 디자인 기준은 [`DESIGN.md`](DESIGN.md).
 
 <p align="center"><img src="assets/report.ko.png" alt="공고 현황표 견본: 판정별 결재란, 지원 권장 대장과 인주 도장, 항목별 점수 붙임" width="720"/></p>
 
-텍스트만 되는 환경에서는 `python3 scripts/tracker.py report --alive` 가 같은 내용을 표로 출력합니다.
+텍스트만 되는 환경에서는 `jobhunt tracker report --alive` 가 같은 내용을 표로 출력합니다.
 
 ### 맞춤도 평가 (`data/job_postings/*.eval.md`)
 
@@ -73,7 +73,7 @@
 
 ### 1. 설치
 
-Python 3.10 이상과 다음 중 하나가 필요합니다.
+다음 중 하나가 필요합니다. Python은 따로 준비하지 않아도 됩니다(설치 도구 uv가 Python 3.12를 함께 받습니다).
 - **macOS** (Homebrew)
 - **Linux** (Debian/Ubuntu, apt)
 - **Windows** (WSL2 + Ubuntu): 아래 [Windows (WSL2)](#windows-wsl2) 참고
@@ -82,24 +82,39 @@ Python 3.10 이상과 다음 중 하나가 필요합니다.
 curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash
 ```
 
-이 한 줄이 `~/jobhunt`에 저장소를 받고 `scripts/setup.sh`까지 실행해 스킬 연결과 빌드 환경을 끝냅니다. git·python3가 없으면 Ubuntu는 apt로 설치하고, macOS는 `xcode-select --install`을 안내합니다. 같은 명령을 다시 실행하면 도구만 갱신하고 `data/`는 그대로 둡니다.
+이 한 줄이 하는 일:
+1. 파이썬 도구 관리자 [uv](https://docs.astral.sh/uv/)가 없으면 설치합니다.
+2. `jobhunt` 명령을 설치합니다(`uv tool install`). 도구는 uv가 관리하는 폴더에 따로 들어갑니다.
+3. `jobhunt setup`으로 개인 자료 폴더(`~/jobhunt/data`)를 만들고, AI 에이전트에 스킬을 연결하고, 이력서 빌드 환경(Chromium, 한글 폰트, poppler)을 설치합니다.
+
+git·curl이 없으면 Ubuntu는 apt로 설치하고, macOS는 `xcode-select --install`을 안내합니다.
 
 | 설정 | 설명 |
 |---|---|
-| `JOBHUNT_DIR=경로` | 설치 폴더 (기본 `~/jobhunt`) |
-| `JOBHUNT_REF=v1.0.0` | 버전(태그)이나 브랜치 고정 |
+| `JOBHUNT_HOME=경로` | 개인 자료 폴더 (기본 `~/jobhunt`). 바꾸면 셸 설정에도 `export JOBHUNT_HOME=경로`를 넣습니다 |
+| `JOBHUNT_REF=v1.2.0` | 버전(태그)이나 브랜치 고정 |
 | `JOBHUNT_REPO=주소` | fork한 저장소에서 받을 때 |
-| `… \| bash -s -- --no-skill` | 뒤 인자는 `setup.sh`로 넘어갑니다 (아래 옵션) |
+| `… \| bash -s -- --no-skill` | 뒤 인자는 `jobhunt setup`으로 넘어갑니다 (아래 옵션) |
 
-예: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.0.0 bash`
+예: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.2.0 bash`
+
+<details>
+<summary>예전에 git clone으로 설치했다면</summary>
+
+같은 설치 명령을 다시 실행하면 새 방식으로 바뀝니다.
+- `~/jobhunt/data`의 개인 자료는 그 자리에 그대로 둡니다.
+- git이 관리하던 도구 파일(코드·지침)과 `.git`은 `~/jobhunt/.old-repo/`로 옮깁니다. 지우지 않으므로 고쳐 둔 파일이 있었다면 거기서 찾을 수 있습니다.
+- 그 자리에는 설치된 스킬을 가리키는 짧은 `AGENTS.md`·`CLAUDE.md`가 생기고, 에이전트 스킬 연결도 새 위치로 바뀝니다.
+- cron·launchd에 `~/jobhunt/scripts/weekly.sh`를 등록해 두었다면 `~/.local/bin/jobhunt weekly`로 바꿔야 합니다. 설치 명령이 찾으면 알려 줍니다.
+
+</details>
 
 <details>
 <summary>직접 설치 (스크립트를 먼저 읽어 보고 싶을 때)</summary>
 
 ```bash
-git clone https://github.com/jojaden/jobhunt.git ~/jobhunt
-cd ~/jobhunt
-bash scripts/setup.sh
+uv tool install --python 3.12 git+https://github.com/jojaden/jobhunt
+jobhunt setup
 ```
 
 </details>
@@ -114,19 +129,20 @@ bash scripts/setup.sh
    ```powershell
    wsl --install -d Ubuntu
    ```
-2. 시작 메뉴에서 **Ubuntu**를 열고 사용자 이름·암호를 만든 뒤, 위 한 줄 설치 명령을 그대로 실행합니다. `setup.sh`가 pip, Chromium 실행용 라이브러리, 한글 폰트(Noto CJK·Pretendard), poppler를 apt로 설치하므로 중간에 sudo 암호를 물을 수 있습니다.
+2. 시작 메뉴에서 **Ubuntu**를 열고 사용자 이름·암호를 만든 뒤, 위 한 줄 설치 명령을 그대로 실행합니다. `jobhunt setup`이 Chromium 실행용 라이브러리, 한글 폰트(Noto CJK·Pretendard), poppler를 apt로 설치하므로 중간에 sudo 암호를 물을 수 있습니다.
 3. **AI 에이전트도 WSL 안에서 실행합니다.** Codex·Claude Code 등을 Ubuntu 터미널에 설치해 `~/jobhunt`에서 시작해야 스킬 연결(`~/.codex/skills`, `~/.claude/skills`)과 `data/` 경로가 맞습니다. VS Code·Cursor를 쓴다면 WSL 확장으로 이 폴더를 엽니다(`code ~/jobhunt`).
 
 알아 둘 점:
-- **설치 폴더는 WSL 홈(`~`) 아래에 두세요.** `/mnt/c/...`(Windows 드라이브)에 두면 파일 접근이 느리고 스킬 링크가 깨질 수 있습니다. `install.sh`는 이 경우 멈추고, `setup.sh`는 경고합니다.
+- **개인 자료 폴더는 WSL 홈(`~`) 아래에 두세요.** `/mnt/c/...`(Windows 드라이브)에 두면 파일 접근이 느리고 스킬 링크가 깨질 수 있습니다. `install.sh`는 이 경우 멈춥니다.
 - **결과물 열기:** 이력서 PDF·공고 현황표 HTML은 WSL 안에 만들어집니다. `explorer.exe .`로 지금 폴더를 Windows 탐색기에서 열거나, 탐색기 주소창에 `\\wsl$\Ubuntu\home\<사용자>\jobhunt`를 넣으면 됩니다.
-- **주간 수집 예약:** WSL은 Windows에 로그인해 있을 때만 돌아갑니다. `weekly.sh`를 정기 실행하려면 WSL의 cron, 또는 Windows 작업 스케줄러에서 `wsl -d Ubuntu -- bash -lc "~/jobhunt/scripts/weekly.sh"`를 등록합니다.
+- **주간 수집 예약:** WSL은 Windows에 로그인해 있을 때만 돌아갑니다. 정기 실행하려면 WSL의 cron, 또는 Windows 작업 스케줄러에서 `wsl -d Ubuntu -- bash -lc "~/.local/bin/jobhunt weekly"`를 등록합니다.
 
 </details>
 
-`setup.sh`가 하는 일:
-- **AI 에이전트 스킬 연결:** 설치된 에이전트를 찾아 스킬 폴더(Claude Code `~/.claude/skills`, Codex `~/.codex/skills`)에 이 폴더를 링크합니다. 복사가 아니라 링크라서, 이 폴더에 쌓이는 개인화가 스킬에 바로 반영됩니다. 스킬을 읽지 않는 에이전트는 이 폴더에서 실행하면 `AGENTS.md`를 따릅니다.
-- **빌드 환경:** Python 패키지, Playwright Chromium, 폰트(Pretendard, Noto CJK KR), poppler를 설치합니다.
+`jobhunt setup`이 하는 일:
+- **개인 자료 폴더 준비:** `~/jobhunt/data`에 폴더 구조와 예시 파일을 만듭니다(있는 파일은 건드리지 않음). 스킬을 읽지 않는 에이전트도 찾아가도록 `AGENTS.md`·`CLAUDE.md`를 둡니다.
+- **AI 에이전트 스킬 연결:** 설치된 에이전트를 찾아 스킬 폴더(Claude Code `~/.claude/skills`, Codex `~/.codex/skills`)에 설치된 스킬을 링크합니다. 업데이트하면 스킬도 바로 새 버전이 됩니다.
+- **빌드 환경:** Playwright Chromium, 폰트(Pretendard, Noto CJK KR), poppler를 설치합니다.
 
 | 옵션 | 설명 |
 |---|---|
@@ -134,24 +150,22 @@ bash scripts/setup.sh
 | `--no-skill` | 스킬 연결 없이 빌드 환경만 |
 | `SKILLS_DIR=경로[:경로…]` | 스킬 폴더를 직접 지정할 때 (다른 에이전트, 여러 곳) |
 
-같은 이름의 폴더나 다른 곳을 가리키는 링크가 이미 있으면 덮어쓰지 않고 알려 줍니다.
+같은 이름의 다른 스킬이 이미 있으면 덮어쓰지 않고 알려 줍니다. 예전 jobhunt를 가리키던 링크는 새 위치로 바꿉니다.
 
-> **왜 마켓플레이스·스킬 설치가 아니라 `git clone`인가요?**
+> **왜 도구와 내 기록을 나눠 두나요?**
 >
-> 이 스킬은 쓸수록 내 것이 되도록 만들었습니다.
-> - **내 기준이 도구 옆에 쌓입니다.** 목표 역할·연봉·제외 조건(`data/profile/`), 경험 근거(`data/experience/`), 검색 조건·우선 기업(`data/search/`), 평가와 지원 기록이 모두 저장소 안 `data/`에 쌓입니다.
-> - **설치 방식에 따라 기록이 사라질 수 있습니다.** 마켓플레이스·플러그인으로 설치한 스킬은 관리되는 캐시 폴더(예: `~/.claude/plugins/cache/…/<버전>/`처럼 에이전트가 관리하는 폴더)에 들어가고, 업데이트할 때 버전 폴더째 바뀝니다. 그러면 거기 쌓인 개인 기록과 내가 고친 규칙이 함께 사라집니다.
-> - **업데이트해도 내 기록은 그대로입니다.** clone한 폴더는 내 작업 사본이라 `git pull`로 도구만 받아옵니다. `data/`는 `.gitignore`로 빠져 있어 업데이트가 건드리지 않습니다.
-> - **도구 자체를 고쳐 쓸 수 있습니다.** 수집 사이트(`references/sources.md`, `scripts/providers/`), 평가 기준(`modes/evaluate.md`), 문체 규칙(`references/style_rules.yaml`), 이력서 디자인(`scripts/render.py`)이 모두 평범한 파일입니다. fork해서 내 방식대로 바꾸고 원본의 업데이트는 merge로 받으면 됩니다.
+> - **업데이트해도 내 기록은 그대로입니다.** 도구는 uv가 관리하는 폴더에, 기록은 `~/jobhunt/data`에 따로 있어 업데이트가 기록을 건드리지 않습니다. 도구 파일을 실수로 고쳐 업데이트가 깨지는 일도 없습니다.
+> - **도구를 고치지 않아도 내 것이 됩니다.** 목표 역할·연봉·제외 조건(`data/profile/`), 경험 근거(`data/experience/`), 검색 조건·우선 기업(`data/search/`), 판정을 고친 사례와 작업 규칙이 모두 `data/`에 쌓이고, 다음 실행이 그대로 씁니다.
+> - **도구 자체를 바꾸고 싶다면** 저장소를 fork·clone해서 고치고 PR로 보내 주세요([`CONTRIBUTING.md`](CONTRIBUTING.md)). clone한 폴더에서는 `python3 scripts/cli.py <명령>`이 `jobhunt <명령>`과 같은 일을 하고, 그 폴더의 `data/`를 씁니다.
 > - **자료가 내 PC 밖으로 나가지 않습니다.** 공고 수집과 이력서 빌드는 이 PC의 Python·Chromium으로 돌고, 개인 자료는 로컬 파일로만 남습니다.
 
 업데이트:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash   # 또는 cd ~/jobhunt && git pull (data/ 는 그대로)
+curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash
 ```
 
-버전은 `v1.0.0`처럼 태그로 붙입니다. 바뀐 점은 [`CHANGELOG.md`](CHANGELOG.md)와 [Releases](https://github.com/jojaden/jobhunt/releases)에서 보고, 설치 명령으로 갱신하면 그 사이 바뀐 점을 보여 줍니다. `data/` 형식이 바뀐 버전은 옮기는 방법을 함께 적습니다.
+버전은 `v1.2.0`처럼 태그로 붙입니다. 설치 명령으로 갱신하면 그 사이 바뀐 점을 보여 주고, 나중에도 `jobhunt changes <이전 버전>`으로 볼 수 있습니다([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). `data/` 형식이 바뀐 버전은 옮기는 방법을 함께 적습니다. 지금 버전은 `jobhunt --version`.
 
 에이전트별로 시작하는 법:
 
@@ -159,7 +173,7 @@ curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | b
 |---|---|
 | Codex | `cd ~/jobhunt && codex` — `AGENTS.md`를 읽고, 스킬(`~/.codex/skills`)로도 연결됩니다 |
 | Claude Code | `cd ~/jobhunt && claude` — `CLAUDE.md`가 `AGENTS.md`를 불러오고, 스킬(`~/.claude/skills`)로도 연결됩니다 |
-| Grok·Gemini·Cursor 등 | 이 폴더에서 에이전트를 열고 "`AGENTS.md`를 읽고 시작해줘"라고 하면 됩니다 |
+| Grok·Gemini·Cursor 등 | `~/jobhunt`에서 에이전트를 열고 "`AGENTS.md`를 읽고 시작해줘"라고 하면 됩니다 |
 
 웹 검색(Firecrawl 등)이나 HTML 페이지 게시(Claude Artifact 등)처럼 에이전트마다 다른 기능은 있으면 쓰고, 없으면 파일 경로를 알려 주거나 해당 채널을 "미수집"으로 보고합니다.
 
@@ -168,31 +182,31 @@ curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | b
 | 말하기 | 일어나는 일 |
 |---|---|
 | "처음 설정해줘" | 목표 역할·연봉·근무지·제외 조건을 묻고 `data/profile/`에 기준을 만듭니다 |
-| "공고 찾아줘" | `weekly.sh`로 수집한 뒤, 새 공고를 내 기준으로 1차 선별해 현황표로 보여 줍니다 |
+| "공고 찾아줘" | `jobhunt weekly`로 수집한 뒤, 새 공고를 내 기준으로 1차 선별해 현황표로 보여 줍니다 |
 | (공고 URL을 붙여넣고) "이 공고 어때?" | 판정과 점수, 조건 확인, 요건과 내 경험 대응표, 지원 전략 |
 | "이 공고용 이력서 만들어줘" | 평가의 계획으로 yaml 작성 → PDF 빌드 → 검사 → 수정 반복 |
-| "자소서 써줘" / "지원서 문항 답 써줘" | 문항별 구조로 초안 작성, 글자 수 제한·문체 검사 (`cover_check.py`) |
+| "자소서 써줘" / "지원서 문항 답 써줘" | 문항별 구조로 초안 작성, 글자 수 제한·문체 검사 (`jobhunt cover-check`) |
 | "이 회사 조사해줘" | 제품·팀·기술·개발 문화·회사 상태·경고 신호를 출처와 함께 정리 (지원 동기·역질문 재료) |
 | "면접 준비해줘" | 전형별 준비, 이력서에서 나올 질문과 꼬리질문, 기술 질문, 행동 질문, 역질문 연습지 |
 | "모의 면접 해줘" | 면접관처럼 한 문항씩 묻고 내 답에 꼬리질문, 답마다 짧은 피드백 |
 | "지원했어" / "서류 붙었어" / "면접 봤어" | 현황표 갱신, 재지원 쿨다운, 면접 기록, 결과가 쌓이면 원인 분석과 기준 조정 제안 |
 | "메뉴" (또는 모드 이름만) | 쓸 수 있는 모드와 지금 할 만한 다음 단계 |
 
-### 3. 스크립트만 따로 쓰기
+### 3. 명령만 따로 쓰기
 
 ```bash
-bash scripts/weekly.sh                             # 수집 → 마감 확인 → 현황표 (LLM 없이, cron·launchd 가능)
-python3 scripts/scan.py --dry-run                  # 파일을 쓰지 않고 수집 결과만 보기
-python3 scripts/report_html.py                     # 공고 현황표 HTML (data/search/reports/postings.html)
-python3 scripts/tracker.py report --alive          # 같은 내용을 텍스트 표로 (마감 여부 포함)
-python3 scripts/tracker.py set 3 지원함             # 지원 기록
-python3 scripts/render.py examples/example.yaml \
-  --profile data/profile/profile.example.yaml --offline   # 예시 이력서 빌드
+jobhunt weekly                       # 수집 → 마감 확인 → 현황표 (LLM 없이, cron·launchd 가능)
+jobhunt scan --dry-run               # 파일을 쓰지 않고 수집 결과만 보기
+jobhunt report                       # 공고 현황표 HTML (data/search/reports/postings.html)
+jobhunt tracker report --alive       # 같은 내용을 텍스트 표로 (마감 여부 포함)
+jobhunt tracker set 3 지원함          # 지원 기록
+jobhunt render data/resumes/<이름>.yaml   # 이력서 빌드 (yaml → PDF · PNG, 검사까지)
+jobhunt where                        # 개인 자료 폴더 위치 (jobhunt --help: 전체 명령)
 ```
 
 ## 🔎 1. 공고 찾기
 
-`scripts/scan.py`가 공고를 수집하고, 자격요건 본문을 `data/search/inbox/`에 저장합니다. 1차 선별은 AI 에이전트가 `data/profile/brief.md`의 기준으로 합니다.
+`jobhunt scan`이 공고를 수집하고, 자격요건 본문을 `data/search/inbox/`에 저장합니다. 1차 선별은 AI 에이전트가 `data/profile/brief.md`의 기준으로 합니다.
 
 | 소스 | 방법 | 자동화 |
 |---|---|---|
@@ -207,7 +221,7 @@ python3 scripts/render.py examples/example.yaml \
 
 - **거르는 기준:** 제목 키워드, 요구 연차(숫자가 있을 때), 근무지, 이미 본 공고(다른 사이트에 같은 공고 포함), 제외 회사, 지원 후 재지원 쿨다운(기본 6개월), 영어 전용 JD(설정 시).
 - **거르지 않는 기준:** 기술 스택은 수집할 때 거르지 않습니다. 검색어를 특정 언어로 좁히면 언어를 따지지 않는 좋은 공고가 빠지기 때문이에요. 수집 단계에서는 자격요건 문장의 필수/우대 힌트만 붙이고, 판정은 선별 단계에서 합니다.
-- **마감 판정:** `scripts/alive.py`가 사이트별 상세 API로 확인합니다. 공개 목록에서 사라졌다고 마감으로 보지 않습니다.
+- **마감 판정:** `jobhunt alive`가 사이트별 상세 API로 확인합니다. 공개 목록에서 사라졌다고 마감으로 보지 않습니다.
 
 ## 📊 2. 맞춤도 평가
 
@@ -223,7 +237,7 @@ python3 scripts/render.py examples/example.yaml \
 | 지원 전략 | 이력서 계획(기본본, 프로젝트 순서, SKILLS, 용어, SUMMARY 방향), 자소서 문항별 사례, 첫 예상 면접 질문 |
 | 확인할 점 | 게시일·재게시, 공고와 회사 정보의 어긋남, 공고 안의 AI 대상 지시문, 리크루터에게 물을 것 |
 
-AI 에이전트가 공고를 한 줄씩 분류하면(해 본 일인지, 필수 요건을 채웠는지, 우대 중 포지션의 핵심 기술은 무엇인지, 원하는 방향의 일인지) `scripts/score.py`가 계산합니다. 점수는 두 층으로 나뉩니다.
+AI 에이전트가 공고를 한 줄씩 분류하면(해 본 일인지, 필수 요건을 채웠는지, 우대 중 포지션의 핵심 기술은 무엇인지, 원하는 방향의 일인지) `jobhunt score`가 계산합니다. 점수는 두 층으로 나뉩니다.
 
 - **공통 기준 (누구에게나 같음):** 필수·우대를 얼마나 채웠는지로 등급이 정해집니다. 모두 충족하면 4.9 이상, 필수와 포지션 핵심 우대를 채우면 4.5 이상, 필수와 우대 절반 이상이면 4.0 이상, 필수나 핵심 우대를 못 채우면 3.9 이하입니다.
 - **개인 선호:** 하고 싶은 일·피하는 일·가점(`data/profile/targets.yaml`)은 등급 안에서 순서만 바꿉니다.
@@ -237,13 +251,13 @@ AI 에이전트가 공고를 한 줄씩 분류하면(해 본 일인지, 필수 �
 | 단계 | AI 에이전트가 하는 일 |
 |---|---|
 | 0. 지원 방향 | 평가의 맞춤 계획을 보여 주고 가장 가까운 기본본(`base_*.yaml`)을 고릅니다 |
-| 1. 자료 수집 | 경험 문서, 로컬 git 로그(`scripts/git_log.sh`), GitLab MR, 기존 이력서에서 근거와 함께 프로젝트 후보를 모읍니다 |
+| 1. 자료 수집 | 경험 문서, 로컬 git 로그(`jobhunt git-log`), GitLab MR, 기존 이력서에서 근거와 함께 프로젝트 후보를 모읍니다 |
 | 2. 추가 요구사항 | 강조할 점, 뺄 내용, 페이지 수를 이번 공고용 또는 계속 쓸 설정으로 저장합니다 |
 | 3. 포트폴리오 | GitHub·블로그 링크와 프로젝트별 관련 글, 링크 접속 확인 |
 | 4. 작성과 빌드 | yaml 작성(추론 문장은 `[확인 필요]`), `render.py`로 PDF·PNG 빌드 |
 | 5. 검수와 수정 | 검사 결과, 수정 전·후 문장, 태그 붙은 사실 확인을 확정할 때까지 반복합니다 |
 
-**빌드 옵션** (`python3 scripts/render.py <yaml>`)
+**빌드 옵션** (`jobhunt render <yaml>`)
 
 | 옵션 | 설명 |
 |---|---|
@@ -253,7 +267,7 @@ AI 에이전트가 공고를 한 줄씩 분류하면(해 본 일인지, 필수 �
 | `--offline` | 링크 접속 검사 생략 |
 | `--no-png` / `--no-check` | PNG 미리보기 / 빌드 후 검사 생략 |
 
-**빌드 후 검사** (`scripts/check.py`)
+**빌드 후 검사** (`jobhunt check`)
 
 | 항목 | 기준 | 수준 |
 |---|---|---|
@@ -268,7 +282,7 @@ AI 에이전트가 공고를 한 줄씩 분류하면(해 본 일인지, 필수 �
 
 ## 📈 쓸수록 정확해지는 개인화
 
-도구(`SKILL.md`, `modes/`, `scripts/`, `references/`)는 git에 올라가고, 내 기준과 기록은 `data/`에만 쌓입니다.
+도구(`SKILL.md`, `modes/`, `scripts/`, `references/`)는 uv가 설치하고 업데이트하며, 내 기준과 기록은 개인 자료 폴더의 `data/`에만 쌓입니다.
 
 | 알게 된 것 | 쌓이는 곳 |
 |---|---|
@@ -288,7 +302,8 @@ AI 에이전트가 공고를 한 줄씩 분류하면(해 본 일인지, 필수 �
 ## 📁 폴더 구조
 
 ```
-install.sh                   한 줄 설치 (clone·갱신 → scripts/setup.sh)
+install.sh                   한 줄 설치 (uv → jobhunt 설치·갱신 → jobhunt setup, 예전 git 설치 전환)
+pyproject.toml               jobhunt 패키지 (uv tool install 로 설치하는 명령)
 AGENTS.md                    모든 AI 에이전트용 작업 안내 (CLAUDE.md 는 이 파일을 불러옴)
 LEGAL_DISCLAIMER.md          사용 범위와 면책
 CHANGELOG.md                 변경 기록 (버전마다 data/ 이전 안내)
@@ -296,17 +311,18 @@ CONTRIBUTING.md              기여 안내 (개발 환경, 확인 방법, 새 �
 SKILL.md                     스킬 진입점, 요청을 모드로 연결
 modes/                       공통 규칙과 모드별 절차 (onboard · scan · evaluate · tailor · cover · deep · interview · track · outcome)
 scripts/
+  cli.py                     jobhunt 명령 (명령마다 아래 스크립트를 그대로 실행)
   scan.py · providers/       공고 수집 (사이트별 모듈)
   discover.py                회사 찾기 (채용 사이트·채용 시스템 판별 → 수집 대상 추가)
   alive.py                   마감 확인
   tracker.py                 지원 현황 기록, 통합 현황표
   cover_check.py             자기소개서 문항 글자 수·문체 검사
   eval_golden.py             판정 정답 세트와 에이전트 판정 비교 (분류 규칙을 바꿨을 때)
-  weekly.sh                  주간 스캔 (scan → alive → report)
+  weekly.py                  주간 스캔 (scan → alive → report, weekly.sh 는 예전 경로용)
   render.py                  yaml → HTML → PDF + PNG, 디자인 A/B/C
   check.py · check_links.py  빌드 후 검사, 링크 접속 확인
   git_log.sh                 로컬 git 저장소에서 내 커밋 로그 추출
-  setup.sh                   설치: 스킬 연결 + Chromium, 폰트, poppler (install.sh 가 clone 뒤 실행)
+  setup.sh                   설치: 스킬 연결 + Chromium, 폰트, poppler (jobhunt setup 이 실행)
   privacy_check.py           개인 자료 커밋 방지 (CI, .githooks/pre-commit)
 references/
   sources.md                 채용 사이트별 수집 방법
@@ -321,7 +337,7 @@ examples/example.yaml        가상 인물 예시
 examples/golden/             판정 정답 세트 (가상 지원자·공고·정답)
 tests/                       도구를 고친 뒤 돌리는 테스트 (네트워크 없이, python3 -m unittest discover -s tests)
 assets/                      README 미리보기 이미지와 예시 PDF
-data/                        내 자료 (git 제외, 구조와 예시만 올라감)
+data/                        내 자료 (git 제외, 구조와 예시만 올라감. 설치본은 ~/jobhunt/data)
   profile/ experience/ preferences/ portfolio/ search/ job_postings/ applications/ resumes/ output/ interview/
 ```
 

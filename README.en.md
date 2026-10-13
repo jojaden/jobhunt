@@ -44,13 +44,13 @@
 
 ## 🖼 Preview
 
-### Posting report (`scripts/report_html.py`)
+### Posting report (`jobhunt report`)
 
-A sample built from fictional companies (`python3 scripts/report_html.py --demo`). It is laid out like a Korean certificate form: a ruled ledger per verdict band, a red seal on recommended postings, D-day marks for deadlines, and an itemised-score attachment per row. It is one HTML file, so any browser or AI agent can open it; hosts that publish HTML pages (e.g. Claude Artifacts) get the `--fragment` version. Design rules live in [`DESIGN.md`](DESIGN.md).
+A sample built from fictional companies (`jobhunt report --demo`). It is laid out like a Korean certificate form: a ruled ledger per verdict band, a red seal on recommended postings, D-day marks for deadlines, and an itemised-score attachment per row. It is one HTML file, so any browser or AI agent can open it; hosts that publish HTML pages (e.g. Claude Artifacts) get the `--fragment` version. Design rules live in [`DESIGN.md`](DESIGN.md).
 
 <p align="center"><img src="assets/report.ko.png" alt="Posting report sample: verdict ledger, recommended postings with seals, itemised score attachment" width="720"/></p>
 
-Text-only hosts can use `python3 scripts/tracker.py report --alive`, which prints the same rows as a table.
+Text-only hosts can use `jobhunt tracker report --alive`, which prints the same rows as a table.
 
 ### Fit evaluation (`data/job_postings/*.eval.md`, translated)
 
@@ -75,7 +75,7 @@ Rendered from the fictional sample [`examples/example.yaml`](examples/example.ya
 
 ### 1. Install
 
-Requires Python 3.10+ and one of:
+Requires one of the following. You don't need to set up Python yourself (the installer, uv, fetches Python 3.12).
 - **macOS** (Homebrew)
 - **Linux** (Debian/Ubuntu, apt)
 - **Windows** (WSL2 + Ubuntu): see [Windows (WSL2)](#windows-wsl2) below
@@ -84,24 +84,39 @@ Requires Python 3.10+ and one of:
 curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash
 ```
 
-This one line clones the repository into `~/jobhunt` and runs `scripts/setup.sh`, which links the skill and sets up the build environment. If git or python3 is missing, Ubuntu gets them through apt and macOS is pointed to `xcode-select --install`. Running the same command again updates the tool only and leaves `data/` alone.
+What this one line does:
+1. Installs [uv](https://docs.astral.sh/uv/), the Python tool manager, if it is missing.
+2. Installs the `jobhunt` command (`uv tool install`). The tool lives in its own folder managed by uv.
+3. Runs `jobhunt setup`: creates your data folder (`~/jobhunt/data`), links the skill into your AI agents, and sets up the resume build environment (Chromium, Korean fonts, poppler).
+
+If git or curl is missing, Ubuntu installs it with apt and macOS points you to `xcode-select --install`.
 
 | Setting | Meaning |
 |---|---|
-| `JOBHUNT_DIR=path` | Install folder (default `~/jobhunt`) |
-| `JOBHUNT_REF=v1.0.0` | Pin a version (tag) or branch |
-| `JOBHUNT_REPO=url` | Install from your fork |
-| `… \| bash -s -- --no-skill` | Trailing arguments go to `setup.sh` (options below) |
+| `JOBHUNT_HOME=path` | Your data folder (default `~/jobhunt`). If you change it, also put `export JOBHUNT_HOME=path` in your shell config |
+| `JOBHUNT_REF=v1.2.0` | Pin a version (tag) or branch |
+| `JOBHUNT_REPO=url` | Install from a fork |
+| `… \| bash -s -- --no-skill` | Trailing arguments go to `jobhunt setup` (options below) |
 
-Example: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.0.0 bash`
+Example: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.2.0 bash`
 
 <details>
-<summary>Manual install (if you'd rather read the script first)</summary>
+<summary>If you installed with git clone before</summary>
+
+Running the same install command again switches you to the new layout.
+- Your personal data in `~/jobhunt/data` stays where it is.
+- The tool files git tracked (code and instructions) and `.git` move to `~/jobhunt/.old-repo/`. Nothing is deleted, so any file you had edited is still there.
+- Short `AGENTS.md` and `CLAUDE.md` files pointing at the installed skill take their place, and the agent skill links move to the new location.
+- If cron or launchd runs `~/jobhunt/scripts/weekly.sh`, change it to `~/.local/bin/jobhunt weekly`. The installer tells you when it finds one.
+
+</details>
+
+<details>
+<summary>Manual install (if you want to read the scripts first)</summary>
 
 ```bash
-git clone https://github.com/jojaden/jobhunt.git ~/jobhunt
-cd ~/jobhunt
-bash scripts/setup.sh
+uv tool install --python 3.12 git+https://github.com/jojaden/jobhunt
+jobhunt setup
 ```
 
 </details>
@@ -110,58 +125,57 @@ bash scripts/setup.sh
 <details>
 <summary><b>Windows (WSL2)</b></summary>
 
-The scripts use bash and apt, so on Windows they run inside Ubuntu on WSL2.
+The scripts rely on bash and apt, so on Windows they run inside Ubuntu on WSL2.
 
-1. In **PowerShell (as administrator)**, install WSL2 with Ubuntu and reboot:
+1. In **PowerShell (as administrator)**, install WSL2 and Ubuntu, then reboot.
    ```powershell
    wsl --install -d Ubuntu
    ```
-2. Open **Ubuntu** from the Start menu, create a user and password, then run the one-line install command above as it is. `setup.sh` installs pip, Chromium's system libraries, Korean fonts (Noto CJK, Pretendard) and poppler with apt, so it may ask for your sudo password.
+2. Open **Ubuntu** from the Start menu, create a user and password, then run the one-line install command above as it is. `jobhunt setup` installs Chromium's system libraries, Korean fonts (Noto CJK, Pretendard) and poppler with apt, so it may ask for your sudo password.
 3. **Run the AI agent inside WSL too.** Install Codex, Claude Code, etc. in the Ubuntu terminal and start it in `~/jobhunt`, so the skill links (`~/.codex/skills`, `~/.claude/skills`) and `data/` paths line up. With VS Code or Cursor, open the folder through the WSL extension (`code ~/jobhunt`).
 
 Good to know:
-- **Keep the install folder under the WSL home (`~`).** Under `/mnt/c/...` (the Windows drive) file access is slow and the skill links can break; `install.sh` stops and `setup.sh` warns about it.
+- **Keep your data folder under the WSL home (`~`).** Under `/mnt/c/...` (the Windows drive) file access is slow and the skill links can break; `install.sh` stops if you try.
 - **Opening the output:** resume PDFs and the posting report HTML are written inside WSL. Run `explorer.exe .` to open the current folder in Windows Explorer, or type `\\wsl$\Ubuntu\home\<user>\jobhunt` into the Explorer address bar.
-- **Scheduled scans:** WSL only runs while you are signed in to Windows. To run `weekly.sh` regularly, use cron inside WSL, or register `wsl -d Ubuntu -- bash -lc "~/jobhunt/scripts/weekly.sh"` in Windows Task Scheduler.
+- **Scheduled scans:** WSL only runs while you are signed in to Windows. To scan regularly, use cron inside WSL, or register `wsl -d Ubuntu -- bash -lc "~/.local/bin/jobhunt weekly"` in Windows Task Scheduler.
 
 </details>
 
-What `setup.sh` does:
-- **Connects the agent skill:** finds the agents you have installed and links this folder into their skill folders (Claude Code `~/.claude/skills`, Codex `~/.codex/skills`). It's a link, not a copy, so the personalization that builds up here reaches the skill immediately. Agents that don't load skills follow `AGENTS.md` when started in this folder.
-- **Build environment:** installs Python packages, Playwright Chromium, fonts (Pretendard, Noto CJK KR) and poppler.
+What `jobhunt setup` does:
+- **Prepares your data folder:** creates the folder structure and example files in `~/jobhunt/data` (existing files are left alone), and adds `AGENTS.md` and `CLAUDE.md` so agents that don't load skills still find the installed instructions.
+- **Links the AI agent skill:** finds installed agents and links the installed skill into their skill folders (Claude Code `~/.claude/skills`, Codex `~/.codex/skills`). After an update the skill is the new version right away.
+- **Build environment:** Playwright Chromium, fonts (Pretendard, Noto CJK KR), poppler.
 
-| Option | Description |
+| Option | Meaning |
 |---|---|
-| `--skill-only` | Only connect the skill |
-| `--no-skill` | Only the build environment |
-| `SKILLS_DIR=path[:path…]` | Link into specific skill folders (other agents, several places) |
+| `--skill-only` | Link the skill only |
+| `--no-skill` | Build environment only, no skill link |
+| `SKILLS_DIR=path[:path…]` | Choose the skill folders yourself (other agents, several places) |
 
-If a folder or a link to somewhere else already exists under that name, it's left untouched and you're told what to do.
+A different skill with the same name is never overwritten; you are told about it. A link to an older jobhunt is moved to the new location.
 
-> **Why `git clone` instead of a marketplace or skill install?**
+> **Why keep the tool and your records apart?**
 >
-> This skill is meant to become yours the more you use it.
-> - **Your criteria live next to the tool.** Target roles, salary and deal-breakers (`data/profile/`), experience evidence (`data/experience/`), search settings and priority companies (`data/search/`), evaluations and applications all accumulate under `data/` inside the repository.
-> - **Some installs would lose that history.** A marketplace or plugin install lives in a managed cache folder (e.g. an agent-managed folder like `~/.claude/plugins/cache/…/<version>/`) that is swapped out on every update. Your records and your rule changes would go with it.
-> - **Updates leave your data alone.** A clone is your own working copy, so `git pull` brings in tool updates only. `data/` is git-ignored and never touched.
-> - **You can change the tool itself.** Job sources (`references/sources.md`, `scripts/providers/`), evaluation rules (`modes/evaluate.md`), writing rules (`references/style_rules.yaml`) and resume design (`scripts/render.py`) are plain files. Fork it, adapt it, and merge upstream changes when you want them.
-> - **Your data stays on your machine.** Collection and builds run on your own Python and Chromium, and personal data only ever exists as local files.
+> - **Updates leave your records alone.** The tool sits in a folder uv manages and your records in `~/jobhunt/data`, so an update never touches them, and an accidental edit to a tool file can't break the update.
+> - **It becomes yours without changing the tool.** Target roles, salary and deal-breakers (`data/profile/`), evidence of your experience (`data/experience/`), search conditions and priority companies (`data/search/`), corrected judgments and working rules all accumulate in `data/`, and the next run uses them.
+> - **To change the tool itself,** fork or clone the repository, make the change, and send a pull request ([`CONTRIBUTING.md`](CONTRIBUTING.md)). In a clone, `python3 scripts/cli.py <command>` does what `jobhunt <command>` does, using that folder's `data/`.
+> - **Your data stays on your machine.** Collection and resume builds run on this machine's Python and Chromium, and personal data stays in local files.
 
-Update:
+Updating:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash   # or cd ~/jobhunt && git pull (data/ stays as is)
+curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash
 ```
 
-Versions are tags such as `v1.0.0`. What changed is in [`CHANGELOG.md`](CHANGELOG.md) (Korean) and [Releases](https://github.com/jojaden/jobhunt/releases); updating with the install command prints the changes since your version. A version that changes a `data/` format says how to move existing files.
+Versions are git tags such as `v1.2.0`. Updating with the install command shows what changed since your version, and `jobhunt changes <old version>` shows it later ([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). Versions that change a `data/` format say how to move your files. `jobhunt --version` prints the installed version.
 
-Starting it in each agent:
+Starting each agent:
 
 | Agent | Start |
 |---|---|
 | Codex | `cd ~/jobhunt && codex` — reads `AGENTS.md`, and the skill is linked into `~/.codex/skills` |
 | Claude Code | `cd ~/jobhunt && claude` — `CLAUDE.md` imports `AGENTS.md`, and the skill is linked into `~/.claude/skills` |
-| Grok, Gemini, Cursor, others | open the agent in this folder and say "read `AGENTS.md` and start" |
+| Grok, Gemini, Cursor, others | open the agent in `~/jobhunt` and say "read `AGENTS.md` and start" |
 
 Features that differ between agents, such as web search (Firecrawl, …) or publishing HTML pages (Claude Artifacts, …), are used when present; without them the agent gives you the file path or reports that channel as not scanned.
 
@@ -170,31 +184,31 @@ Features that differ between agents, such as web search (Firecrawl, …) or publ
 | Say | What happens |
 |---|---|
 | "처음 설정해줘" (set me up) | Asks for target roles, salary, location and deal-breakers, and writes your criteria to `data/profile/` |
-| "공고 찾아줘" (find postings) | Runs `weekly.sh`, triages new postings against your criteria, shows the overview table |
+| "공고 찾아줘" (find postings) | Runs `jobhunt weekly`, triages new postings against your criteria, shows the overview table |
 | (paste a URL) "이 공고 어때?" (how is this one?) | Verdict and score, condition checks, requirements-vs-experience map, application strategy |
 | "이 공고용 이력서 만들어줘" (make a resume for it) | Writes the YAML from the plan → builds the PDF → checks → revises |
-| "자소서 써줘" (write the cover letter) | Drafts each application question with a fitting structure, checks character limits and style (`cover_check.py`) |
+| "자소서 써줘" (write the cover letter) | Drafts each application question with a fitting structure, checks character limits and style (`jobhunt cover-check`) |
 | "이 회사 조사해줘" (research this company) | Product, team, stack, engineering culture, company state and red flags, with sources (material for motivation and reverse questions) |
 | "면접 준비해줘" (prepare the interview) | A practice sheet: per-stage prep, resume-driven questions with follow-ups, technical and behavioral questions, reverse questions |
 | "모의 면접 해줘" (mock interview) | Asks one question at a time like an interviewer, follows up on your answer, short feedback after each |
 | "지원했어" / "서류 붙었어" / "면접 봤어" (applied / passed / interviewed) | Updates the tracker, applies the re-apply cooldown, logs the interview, analyzes causes and suggests criteria changes as results accumulate |
 | "메뉴" (menu, or just a mode name) | The available modes and the next step that fits where you are |
 
-### 3. Use the scripts on their own
+### 3. Use the commands on their own
 
 ```bash
-bash scripts/weekly.sh                             # collect → liveness check → overview (no LLM, cron/launchd friendly)
-python3 scripts/scan.py --dry-run                  # see what would be collected without writing files
-python3 scripts/report_html.py                     # posting report as HTML (data/search/reports/postings.html)
-python3 scripts/tracker.py report --alive          # the same rows as a text table
-python3 scripts/tracker.py set 3 지원함             # record an application
-python3 scripts/render.py examples/example.yaml \
-  --profile data/profile/profile.example.yaml --offline   # build the sample resume
+jobhunt weekly                       # collect → liveness check → overview (no LLM, cron/launchd friendly)
+jobhunt scan --dry-run               # see what would be collected without writing files
+jobhunt report                       # posting report as HTML (data/search/reports/postings.html)
+jobhunt tracker report --alive       # the same rows as a text table
+jobhunt tracker set 3 지원함          # record an application
+jobhunt render data/resumes/<name>.yaml   # build a resume (YAML → PDF · PNG, checks included)
+jobhunt where                        # where your data folder is (jobhunt --help: every command)
 ```
 
 ## 🔎 1. Find Postings
 
-`scripts/scan.py` collects postings and saves the full requirement text to `data/search/inbox/`. The AI agent then triages them against `data/profile/brief.md`.
+`jobhunt scan` collects postings and saves the full requirement text to `data/search/inbox/`. The AI agent then triages them against `data/profile/brief.md`.
 
 | Source | Method | Automated by |
 |---|---|---|
@@ -209,7 +223,7 @@ python3 scripts/render.py examples/example.yaml \
 
 - **What gets filtered out:** title keywords, required years (when the posting states them), location, postings you've already seen (including the same posting on another site), blocked companies, companies you applied to recently (6-month cooldown by default), and English-only JDs (when enabled).
 - **What doesn't:** the tech stack is never used as a filter at collection time. Narrowing the search to one language drops good postings that accept any language. The script only attaches a required/preferred hint, and the stack is judged during triage.
-- **Open or closed:** `scripts/alive.py` checks each site's detail API. A posting missing from a public list is not treated as closed.
+- **Open or closed:** `jobhunt alive` checks each site's detail API. A posting missing from a public list is not treated as closed.
 
 ## 📊 2. Fit Evaluation
 
@@ -225,7 +239,7 @@ python3 scripts/render.py examples/example.yaml \
 | Application strategy | Resume plan (base, project order, skills, wording, summary direction), a story per cover-letter question, first likely interview questions |
 | Open points | Posting date and reposts, company facts that contradict it, AI-targeted instructions in the posting, questions for the recruiter |
 
-The AI agent classifies the posting line by line (have you done this work, is each required item met, which preferred items are core skills of the position, is this the kind of work you want), and `scripts/score.py` computes the score in two layers.
+The AI agent classifies the posting line by line (have you done this work, is each required item met, which preferred items are core skills of the position, is this the kind of work you want), and `jobhunt score` computes the score in two layers.
 
 - **Common rules (the same for everyone):** coverage of the required and preferred lines sets the band. Everything met: 4.9+. Required plus the position's key preferred skills: 4.5+. Required plus at least half of the preferred: 4.0+. A required line or a key preferred skill missing: 3.9 or below.
 - **Personal preferences:** wanted and avoided work and bonuses (`data/profile/targets.yaml`) only reorder postings inside a band.
@@ -239,13 +253,13 @@ After the calculation the agent rereads the whole posting (seniority and scope, 
 | Step | What the agent does |
 |---|---|
 | 0. Direction | Shows the tailoring plan and picks the closest base resume (`base_*.yaml`) |
-| 1. Material | Gathers project candidates with evidence from docs, local git logs (`scripts/git_log.sh`), GitLab MRs and old resumes |
+| 1. Material | Gathers project candidates with evidence from docs, local git logs (`jobhunt git-log`), GitLab MRs and old resumes |
 | 2. Requests | Records what to emphasize, what to leave out and the page count, for this posting or for good |
 | 3. Portfolio | GitHub/blog links, related posts per project, link checks |
 | 4. Write & build | Writes the YAML (inferred sentences tagged `[확인 필요]`), builds PDF + PNG with `render.py` |
 | 5. Review | Check results, before/after rewrites, and confirmation of every tagged fact, repeated until final |
 
-**Build options** (`python3 scripts/render.py <yaml>`)
+**Build options** (`jobhunt render <yaml>`)
 
 | Option | Description |
 |---|---|
@@ -255,7 +269,7 @@ After the calculation the agent rereads the whole posting (seniority and scope, 
 | `--offline` | Skip link reachability checks |
 | `--no-png` / `--no-check` | Skip PNG previews / post-build checks |
 
-**Build checks** (`scripts/check.py`)
+**Build checks** (`jobhunt check`)
 
 | Check | Rule | Level |
 |---|---|---|
@@ -270,7 +284,7 @@ After the calculation the agent rereads the whole posting (seniority and scope, 
 
 ## 📈 Personalization That Compounds
 
-The tool (`SKILL.md`, `modes/`, `scripts/`, `references/`) is versioned in git. Your criteria and records live only under `data/`.
+The tool (`SKILL.md`, `modes/`, `scripts/`, `references/`) is installed and updated by uv. Your criteria and records live only under `data/` in your data folder.
 
 | What the skill learns | Where it goes |
 |---|---|
@@ -290,7 +304,8 @@ The tool (`SKILL.md`, `modes/`, `scripts/`, `references/`) is versioned in git. 
 ## 📁 Project Structure
 
 ```
-install.sh                   One-line install (clone or update → scripts/setup.sh)
+install.sh                   One-line install (uv → install or update jobhunt → jobhunt setup, moves an old git install)
+pyproject.toml               The jobhunt package (the command uv tool install installs)
 AGENTS.md                    Working guide for every AI agent (CLAUDE.md imports it)
 LEGAL_DISCLAIMER.md          Acceptable use and disclaimer (Korean)
 CHANGELOG.md                 Change log, with data/ migration notes per version (Korean)
@@ -298,17 +313,18 @@ CONTRIBUTING.md              Contributing guide: dev setup, checks, adding a col
 SKILL.md                     Skill entry point, routes requests to modes
 modes/                       Shared rules and per-mode procedures (onboard · scan · evaluate · tailor · cover · deep · interview · track · outcome)
 scripts/
+  cli.py                     The jobhunt command (each command runs a script below as is)
   scan.py · providers/       Posting collection (one module per site)
   discover.py                Company discovery (find career sites and hiring systems, add them to the scan)
   alive.py                   Open/closed check
   tracker.py                 Application tracker and combined overview
   cover_check.py             Cover-letter character counts and style checks
   eval_golden.py             Compare agent judgments with the golden set (after changing classification rules)
-  weekly.sh                  Weekly scan (scan → alive → report)
+  weekly.py                  Weekly scan (scan → alive → report; weekly.sh keeps the old path working)
   render.py                  YAML → HTML → PDF + PNG, designs A/B/C
   check.py · check_links.py  Post-build checks, link reachability
   git_log.sh                 Extract your own commits from a local git repo
-  setup.sh                   Install: skill link + Chromium, fonts, poppler (install.sh runs it after cloning)
+  setup.sh                   Install: skill link + Chromium, fonts, poppler (run by jobhunt setup)
   privacy_check.py           Keeps personal data out of commits (CI, .githooks/pre-commit)
 references/
   sources.md                 Per-site collection methods
@@ -323,7 +339,7 @@ examples/example.yaml        Fictional sample resume
 examples/golden/             Golden judgment set (fictional candidate, postings, answers)
 tests/                       Tests to run after changing the tool (offline, python3 -m unittest discover -s tests)
 assets/                      README preview images and sample PDF
-data/                        Your data (git-ignored; only structure and examples are committed)
+data/                        Your data (git-ignored; only structure and examples are committed; installed: ~/jobhunt/data)
   profile/ experience/ preferences/ portfolio/ search/ job_postings/ applications/ resumes/ output/ interview/
 ```
 

@@ -8,7 +8,7 @@ The report answers, in order: should I apply (verdict) → what is this seat →
 - Posting text: the URL or body the user gave. Save it to `data/job_postings/<YYYY-MM-DD>_<회사>_<포지션>.md` (link, collection date, collection method, full body).
 - `data/profile/targets.yaml`, `data/experience/*`, `data/resumes/base_*.yaml`, `data/preferences/standing.md`
 - For a posting that came through scan, start from its body in `data/search/inbox/`.
-- Closing status: for sites `scripts/alive.py` covers (Wanted · Jumpit · LinkedIn · Greenhouse · Toss · NHN · greetinghr · ninehire) use its result; otherwise use the method in `references/sources.md`. If it cannot be checked, write `확인: 못 함` in the header.
+- Closing status: for sites `jobhunt alive` covers (Wanted · Jumpit · LinkedIn · Greenhouse · Toss · NHN · greetinghr · ninehire) use its result; otherwise use the method in `references/sources.md`. If it cannot be checked, write `확인: 못 함` in the header.
 
 ## Report sections
 
@@ -38,7 +38,7 @@ The report answers, in order: should I apply (verdict) → what is this seat →
 
 ## Score
 
-`scripts/score.py` calculates it with the same criteria as first-pass screening (`references/scoring.md`). Never estimate by hand. Then review the result against the whole posting with `references/judgment.md` §1 (seniority, what the hiring side weighs, `key` preferred lines) and record any adjustment as `review` in the judgment file.
+`jobhunt score` calculates it with the same criteria as first-pass screening (`references/scoring.md`). Never estimate by hand. Then review the result against the whole posting with `references/judgment.md` §1 (seniority, what the hiring side weighs, `key` preferred lines) and record any adjustment as `review` in the judgment file.
 - If the first pass left a judgment file in `data/search/judgments/`, re-check and fix its classification against the "요건과 내 경험" table; otherwise create one.
 - `충족`/`부분`/`없음` in that table must match `yes`/`partial`/`no` in the judgment file. For `없음`, also give the gap type (`bridge`/`core`).
 - 4.0+ "지원 권장", 3.5–3.9 "지원 고려", 3.0–3.4 "보류", below "제외". Put `score.py`'s per-item scores (업무 · 필수 · 우대 · 방향 · 신호) verbatim on the first line of the report.
@@ -67,7 +67,7 @@ The report answers, in order: should I apply (verdict) → what is this seat →
 ```
 
 After evaluating:
-1. Add one `평가함` row with `python3 scripts/tracker.py add --company … --role … --score … --eval data/job_postings/<posting>.eval.md --memo "<근무지> · <출처> · <url>"`.
+1. Add one `평가함` row with `jobhunt tracker add --company … --role … --score … --eval data/job_postings/<posting>.eval.md --memo "<근무지> · <출처> · <url>"`.
 2. If the posting was in `pipeline.md`, move it to "처리 완료".
 3. If the user corrects a score or judgment, write it into the criteria files per `_shared.md` "Getting sharper".
 4. If they decide to apply, move on to `modes/tailor.md`.

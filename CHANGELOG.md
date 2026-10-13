@@ -14,7 +14,8 @@
 - 수집 보고: LinkedIn 이 요청 제한(429)으로 일부만 받았으면 출처 줄에 "⚠ 일부만 — 못 받은 키워드 (다음 실행에 다시 받음)"으로 표시. 지금까지는 정상과 똑같이 보였음 (#38)
 - `jobhunt` 명령: `uv tool install` 로 설치할 수 있는 패키지(`pyproject.toml`). `jobhunt scan` · `alive` · `weekly` · `score` · `tracker` · `report` · `render` … 는 `python3 scripts/…py` 와 같고, `jobhunt where` 가 개인 자료 폴더를 알려 줌 (`JOBHUNT_HOME` > 저장소에서 돌면 저장소 > `~/jobhunt`). 주간 실행은 `weekly.py` 로 옮김(`bash scripts/weekly.sh` 도 그대로 동작) (#40)
 - Python 3.10 이상이 필요함 (3.9 지원 끝, Playwright 최신판이 3.10+) (#40)
-- **data/ 이전:** 없음
+- 설치가 uv 방식으로 바뀜: 한 줄 설치가 uv(없으면 설치) → `jobhunt` 명령 → `jobhunt setup`(개인 자료 폴더 준비 · 스킬 연결 · Chromium·폰트·poppler). 도구는 uv 가 관리하는 폴더에, 개인 자료는 `~/jobhunt/data` 에 따로 있음. 지침(SKILL.md · modes/ · references/)과 README 의 명령은 `jobhunt …` 으로. `jobhunt --version`(커밋 포함) · `jobhunt changes <버전>` · `jobhunt git-log` 추가 (#42)
+- **data/ 이전:** 예전에 git clone 으로 설치했다면 같은 설치 명령을 다시 실행하세요. `~/jobhunt/data` 는 그대로 두고, git 이 관리하던 코드·지침 파일과 `.git` 을 `~/jobhunt/.old-repo/` 로 옮깁니다(지우지 않음, 고친 파일도 그대로). cron·launchd 가 `~/jobhunt/scripts/weekly.sh` 를 부르면 그 경로가 `jobhunt weekly` 를 부르도록 이어 둡니다 (#42)
 
 ## v1.1.0 — 2026-10-08
 

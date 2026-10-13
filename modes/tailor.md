@@ -20,7 +20,7 @@ Ask each step 1–4 questions at a time (the host's choice UI if it has one, oth
 ### 1. Material collection (multiple choice)
 
 - A document summarizing experience / a local git repository (author-filtered commit log) / GitLab / an existing resume (pdf, py, docx).
-  - git: `bash scripts/git_log.sh <repo> "<email|name>" [since] [until]` → `data/experience/git_<repo>.md`. Revert, downgrade, and abandoned commits (marked ⟲) are trial-and-error story candidates.
+  - git: `jobhunt git-log <repo> "<email|name>" [since] [until]` → `data/experience/git_<repo>.md`. Revert, downgrade, and abandoned commits (marked ⟲) are trial-and-error story candidates.
   - GitLab: if a GitLab tool is connected, read MRs and commits by author. Otherwise ask the user for an exported list.
   - Existing resume: move its wording into yaml. For a py build script, pull wording from function arguments and constants.
 - If there is nothing, take it as direct input, asking in this order:
@@ -49,11 +49,11 @@ Ask each step 1–4 questions at a time (the host's choice UI if it has one, oth
 2. Prefix every sentence filled by inference with `[확인 필요]`.
 3. Build:
    ```
-   python3 scripts/render.py data/resumes/<file>.yaml
+   jobhunt render data/resumes/<file>.yaml
    ```
    `--design A|C` for the other designs, `--offline` to skip link reachability checks.
    Output: `data/output/이름_직무_버전.pdf`, `_p1.png …`, `.html`. The filename is profile `name`, yaml `meta.job` (if empty, the header job title), `meta.version`.
-4. Without a build environment, start with `bash scripts/setup.sh`. If building fails in the user's local shell, upload only `scripts/`, `references/`, the yaml, and the profile to a cloud workspace, build there, and bring the PDF and PNGs back into `data/output/`.
+4. Without a build environment, start with `jobhunt setup`. If building fails in the user's local shell, upload only `scripts/`, `references/`, the yaml, and the profile to a cloud workspace, build there, and bring the PDF and PNGs back into `data/output/`.
 
 ### 5. Review and revise
 
@@ -108,7 +108,7 @@ Ask each step 1–4 questions at a time (the host's choice UI if it has one, oth
 
 ## Post-build checks
 
-`render.py` calls `check.py` at the end. To run it alone: `python3 scripts/check.py <yaml> <pdf>`
+`render.py` calls `check.py` at the end. To run it alone: `jobhunt check <yaml> <pdf>`
 
 | Item | Criterion | Level |
 |---|---|---|
@@ -122,4 +122,4 @@ Ask each step 1–4 questions at a time (the host's choice UI if it has one, oth
 
 - Fix until errors are 0. Show warnings to the user and let them decide.
 - Resolve orphaned headings and page overflow by cutting content (merge bullets, demote a project to OTHER) or reordering. Keep the CSS as is.
-- Link check: cloud environments may block outbound access and report "확인 불가". Then run `python3 scripts/check_links.py --pdf <pdf>` on the user's machine or open the links in a browser. Record the result in `last_link_check` of `data/portfolio/portfolio.yaml`.
+- Link check: cloud environments may block outbound access and report "확인 불가". Then run `jobhunt check-links --pdf <pdf>` on the user's machine or open the links in a browser. Record the result in `last_link_check` of `data/portfolio/portfolio.yaml`.

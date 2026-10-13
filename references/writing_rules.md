@@ -1,6 +1,6 @@
 # Sentence rules
 
-What a machine can catch, `scripts/check.py` checks by reading `style_rules.yaml`. The rest is checked by reading after writing.
+What a machine can catch, `jobhunt check` checks by reading `style_rules.yaml`. The rest is checked by reading after writing.
 
 ## Tone
 

@@ -4,6 +4,7 @@
 #   privacy — data/ 의 개인 자료가 추적되고 있으면 실패 (scripts/privacy_check.py)
 #   build   — Ubuntu 에서 scripts/setup.sh 로 설치한 뒤 예시 이력서를 디자인 A·B·C 로 빌드 (render.py 가 check.py 까지 돌린다)
 #   package — 휠을 만들어 uv tool 로 설치한 jobhunt 명령이 저장소 밖에서 도는지 (함께 배포한 references/ 를 쓰는지)
+#   migrate — 예전 git 설치(v1.1.0)에서 install.sh 로 전환: data/ 보존, .old-repo/, 스킬 다시 연결, cron 이어 주기, 재실행, 중간에 멈춘 전환 이어 하기
 name: test
 
 on:
@@ -122,3 +123,55 @@ jobs:
           jobhunt check "$GITHUB_WORKSPACE/examples/example.yaml" --offline
           printf '# 가나다랩 — 백엔드 개발자\n\n- URL: https://a.example/1\n\n## 자격요건\n- Go 3년 이상\n' > body.md
           jobhunt score init body.md | grep -q "Go 3년 이상"
+
+  migrate:
+    name: 설치 전환 (ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0          # 예전 버전 태그(v1.1.0)로 git 설치를 흉내 낸다
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: uv
+        run: python -m pip install uv
+      - name: 예전 git 설치 흉내 (개인 파일 · 스킬 링크 · cron)
+        run: |
+          git clone -q --branch v1.1.0 "$GITHUB_WORKSPACE" "$HOME/jobhunt"
+          echo "name: 가상" > "$HOME/jobhunt/data/profile/profile.yaml"
+          mkdir -p "$RUNNER_TEMP/skills" && ln -s "$HOME/jobhunt" "$RUNNER_TEMP/skills/jobhunt"
+          echo "0 9 * * 1 $HOME/jobhunt/scripts/weekly.sh" | crontab -
+      - name: install.sh 로 전환
+        run: |
+          JOBHUNT_REPO="file://$GITHUB_WORKSPACE" JOBHUNT_REF="$(git rev-parse HEAD)" SKILLS_DIR="$RUNNER_TEMP/skills" \
+            bash install.sh --skill-only | tee "$RUNNER_TEMP/first.log"
+      - name: 전환 결과
+        run: |
+          set -x
+          test "$(cat "$HOME/jobhunt/data/profile/profile.yaml")" = "name: 가상"
+          test -d "$HOME/jobhunt/.old-repo/.git" && test -f "$HOME/jobhunt/.old-repo/SKILL.md"
+          test ! -e "$HOME/jobhunt/SKILL.md" && grep -q "jobhunt where" "$HOME/jobhunt/AGENTS.md"
+          test -f "$HOME/jobhunt/data/profile/targets.example.yaml"
+          readlink "$RUNNER_TEMP/skills/jobhunt" | grep -q "site-packages/jobhunt"
+          grep -q "jobhunt\" weekly" "$HOME/jobhunt/scripts/weekly.sh"
+          "$(uv tool dir --bin)/jobhunt" where | grep -q "$HOME/jobhunt/data"
+          grep -q "다음 버전" "$RUNNER_TEMP/first.log"
+      - name: 다시 실행하면 이미 최신
+        run: |
+          JOBHUNT_REPO="file://$GITHUB_WORKSPACE" JOBHUNT_REF="$(git rev-parse HEAD)" SKILLS_DIR="$RUNNER_TEMP/skills" \
+            bash install.sh --skill-only | tee "$RUNNER_TEMP/second.log"
+          grep -q "이미 최신" "$RUNNER_TEMP/second.log"
+      - name: 중간에 멈춘 전환을 다시 실행하면 이어서 옮김
+        run: |
+          half="$RUNNER_TEMP/half"
+          git clone -q --branch v1.1.0 "$GITHUB_WORKSPACE" "$half"
+          echo "name: 가상" > "$half/data/profile/profile.yaml"
+          mkdir "$half/.old-repo" && mv "$half/SKILL.md" "$half/modes" "$half/.old-repo/"
+          JOBHUNT_HOME="$half" JOBHUNT_REPO="file://$GITHUB_WORKSPACE" JOBHUNT_REF="$(git rev-parse HEAD)" SKILLS_DIR="$RUNNER_TEMP/skills-half" \
+            bash install.sh --skill-only
+          test "$(cat "$half/data/profile/profile.yaml")" = "name: 가상"
+          test -f "$half/.old-repo/modes/scan.md" && test -f "$half/.old-repo/scripts/scan.py" && test -d "$half/.old-repo/.git"
+          test ! -e "$half/scripts" && test ! -e "$half/.git"

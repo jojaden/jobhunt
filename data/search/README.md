@@ -6,5 +6,5 @@
 - `scan-history.tsv`: 한 번이라도 본 공고 기록. 중복 제거에 쓴다.
 - `blacklist.md`: 지원하지 않을 회사(사용자가 직접 정한 것만).
 - `manual-checks.yaml`: 스크립트가 못 도는 채널을 손으로 확인한 결과(확인일·결과·메모·판정 못 한 공고). 공고 현황표의 "직접 확인한 곳" 장이 읽는다. 형식은 `manual-checks.example.yaml`.
-- `inbox/`: `scripts/scan.py`가 받은 공고 본문(자격요건·우대·주요업무). 1차 선별이 읽는다.
-- `reports/`: `scripts/weekly.sh` 주간 보고.
+- `inbox/`: `jobhunt scan`이 받은 공고 본문(자격요건·우대·주요업무). 1차 선별이 읽는다.
+- `reports/`: `jobhunt weekly` 주간 보고.

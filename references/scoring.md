@@ -24,11 +24,11 @@ Problems with the old method (estimating role 30 · requirements 30 · narrative
 ## Steps
 
 1. Get the body (`data/search/inbox/*.md`).
-2. Scaffold: `python3 scripts/score.py init <body.md> -o data/search/judgments/<source>_<id>.yaml`
+2. Scaffold: `jobhunt score init <body.md> -o data/search/judgments/<source>_<id>.yaml`
    - A draft with main tasks, qualifications, and preferred items split into lines. Delete lines from the wrong section (culture fit, stack listings, benefits) and add missing ones.
 3. Fill in the blanks by the criteria below. For lines that need evidence, write the user's experience in one line under `why:` (evidence only from primary material such as `data/experience/`).
 4. Check whether the posting resembles a calibration case in `data/profile/calibration.md`.
-5. Score with `python3 scripts/score.py data/search/judgments/<file>.yaml`.
+5. Score with `jobhunt score data/search/judgments/<file>.yaml`.
 
 ## Judgment file
 
@@ -140,7 +140,7 @@ When the user says "이 판정은 틀렸다":
 1. Find which classification was wrong in that posting's judgment file and fix it.
 2. If the classification is right but the score is off: a personal taste → `scoring` in `targets.yaml` (preferred work, signals); a rule every user should share → `scripts/score.py` and this file.
 3. Add one line to `data/profile/calibration.md`: posting, previous verdict, user's judgment, new score, lesson.
-4. If a rule changed, recompute everything with `python3 scripts/score.py data/search/judgments/*.yaml` and show postings whose ranking flipped.
+4. If a rule changed, recompute everything with `jobhunt score data/search/judgments/*.yaml` and show postings whose ranking flipped.
 
 ## Golden set
 
@@ -149,8 +149,8 @@ When the user says "이 판정은 틀렸다":
 Run it whenever a change touches how lines are classified (this file, `references/judgment.md`, `modes/evaluate.md`, the classification parts of `modes/scan.md`):
 
 1. Create an empty folder outside the repo. Do not open `examples/golden/answers/` until step 4; it is the answer key.
-2. For each `examples/golden/postings/<name>.md`: scaffold with `python3 scripts/score.py init <posting> -o <folder>/<name>.yaml` and classify it as the candidate in `examples/golden/candidate.md` would be classified, by the rules in this file. Use only `candidate.md` as evidence. Fill gates, every line, `direction`, `domain_new`, `signals`.
-3. `python3 scripts/eval_golden.py <folder>`: per case it prints the verdict (from `score.py` with `scoring.yaml`), line agreement and every differing line with the rule the case checks. Exit 1 below 85% line or 80% verdict agreement (`--min-lines`, `--min-verdicts`).
+2. For each `examples/golden/postings/<name>.md`: scaffold with `jobhunt score init <posting> -o <folder>/<name>.yaml` and classify it as the candidate in `examples/golden/candidate.md` would be classified, by the rules in this file. Use only `candidate.md` as evidence. Fill gates, every line, `direction`, `domain_new`, `signals`.
+3. `jobhunt eval-golden <folder>`: per case it prints the verdict (from `score.py` with `scoring.yaml`), line agreement and every differing line with the rule the case checks. Exit 1 below 85% line or 80% verdict agreement (`--min-lines`, `--min-verdicts`).
 4. Report the disagreements. A disagreement on a case whose rule the change meant to alter is expected: update that answer (and `expect:`) in the same change and say why. Any other disagreement means the new wording is ambiguous; fix the wording, not the answer.
 
 Add a case when a calibration lesson (`data/profile/calibration.md`) becomes a common rule: a fictional posting that isolates it, its answer, and a `rule:` line. CI checks only that the answers agree with themselves and that each `expect:` matches `score.py`, so it catches script changes, not classification drift; drift is measured by running the steps above.
