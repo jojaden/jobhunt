@@ -106,5 +106,23 @@ class GreetinghrSeen(unittest.TestCase):
         self.assertNotIn(seen_url, [j.url for j in jobs])
 
 
+class LinkedinRateLimit(unittest.TestCase):
+    def test_partial_on_429(self):
+        """429 가 두 번 나면 그 키워드는 멈추고, 받은 공고와 멈춘 곳을 Partial 로 돌려준다."""
+        case = next(c for c in load_fixture("providers", "linkedin.json")["cases"] if c["name"].startswith("검색 카드"))
+        first = next(iter(case["responses"]))
+        nxt = first.replace("keywords=backend", "keywords=server")
+        responses = dict(case["responses"], **{nxt: {"status": 429, "html": ""}})
+        saved, providers.linkedin.time.sleep = providers.linkedin.time.sleep, lambda s: None
+        try:
+            with replay(responses):
+                jobs = providers.linkedin.collect(dict(case["cfg"], keywords=["backend", "server"], max_pages=1))
+        finally:
+            providers.linkedin.time.sleep = saved
+        self.assertIsInstance(jobs, K.Partial)
+        self.assertEqual(len(jobs), len(case["jobs"]))
+        self.assertIn("'server' 1쪽부터", jobs.why)
+
+
 if __name__ == "__main__":
     unittest.main()

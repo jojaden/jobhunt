@@ -4,15 +4,15 @@
 목록 /jobs-guest/jobs/api/seeMoreJobPostings/search (HTML 카드 10개씩), 상세 /jobs-guest/jobs/api/jobPosting/{id}.
 - 검색 결과의 전체 URL(슬러그 포함)을 그대로 쓴다. 숫자 ID로 jobs/view/{id} 를 다시 만들면 마감처럼 보인다 (2026-09-01).
 - 한국어로 쓴 공고만 받는다(korean_only). 영어 전용 JD는 본문을 읽은 뒤 skipped_language 로 뺀다.
-- 요청 간격 1.6초 이상. 429 가 나면 10초 쉬고 한 번 더, 그래도 429 면 그 키워드는 멈추고 받은 것까지만 쓴다.
+- 요청 간격 1.6초 이상. 429 가 나면 10초 쉬고 한 번 더, 그래도 429 면 그 키워드는 멈추고 받은 것까지만 쓴다
+  (Partial 로 돌려줘 수집 보고에 "일부만"으로 남는다. 못 받은 공고는 기록되지 않아 다음 실행에 다시 받는다).
 """
 import re
-import sys
 import time
 import urllib.parse
 from typing import List, Optional
 
-from jobkit import Job, ShapeError, html_text, http_get
+from jobkit import Job, Partial, ShapeError, html_text, http_get
 
 BASE = "https://www.linkedin.com/jobs-guest/jobs/api"
 DELAY = 1.6
@@ -27,7 +27,7 @@ def _pick(pat: str, s: str) -> str:
 def collect(cfg: dict) -> List[Job]:
     loc = urllib.parse.quote(cfg.get("location", "Seoul, South Korea"))
     period = int(cfg.get("period_days", 30)) * 86400
-    jobs, seen = [], set()
+    jobs, seen, stopped = [], set(), []
     for kw in cfg.get("keywords", ["백엔드 개발자"]):
         for page in range(cfg.get("max_pages", 5)):
             url = (f"{BASE}/seeMoreJobPostings/search?keywords={urllib.parse.quote(kw)}&location={loc}"
@@ -37,7 +37,7 @@ def collect(cfg: dict) -> List[Job]:
                 time.sleep(10)
                 status, body = http_get(url, accept="text/html", delay=DELAY)
             if status == 429:
-                print(f"  linkedin: 429 (요청 제한) — '{kw}' {page}쪽에서 멈춤", file=sys.stderr)
+                stopped.append(f"'{kw}' {page + 1}쪽부터")
                 break
             if status != 200:
                 raise ShapeError(f"LinkedIn 목록 HTTP {status}")
@@ -57,7 +57,7 @@ def collect(cfg: dict) -> List[Job]:
                                 extra=dict(korean_only=cfg.get("korean_only", True))))
             if len(cards) < 10:
                 break
-    return jobs
+    return Partial(jobs, "요청 제한(429)으로 못 받음: " + ", ".join(stopped)) if stopped else jobs
 
 
 def _detail_html(jid: str):
