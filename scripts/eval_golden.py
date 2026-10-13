@@ -27,7 +27,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import jobkit as K  # noqa: E402
 import score as S  # noqa: E402
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIELDS = {"work": ("fit",), "required": ("met", "gap", "alt"), "preferred": ("met", "key")}
 
 
@@ -101,7 +100,7 @@ def _total(r):
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="판정 정답 세트 비교")
     ap.add_argument("folder", help="에이전트가 분류한 판정 폴더 (정답과 같은 파일 이름)")
-    ap.add_argument("--golden", default=os.path.join(ROOT, "examples", "golden"))
+    ap.add_argument("--golden", default=os.path.join(K.RES, "examples", "golden"))
     ap.add_argument("--min-lines", type=float, default=0.85, help="줄 일치율 기준 (기본 0.85)")
     ap.add_argument("--min-verdicts", type=float, default=0.8, help="결론 일치율 기준 (기본 0.8)")
     a = ap.parse_args(argv)

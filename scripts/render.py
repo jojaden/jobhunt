@@ -23,7 +23,9 @@ import sys
 
 import yaml
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from jobkit import ROOT  # noqa: E402  (개인 자료 폴더: data/profile · data/output 기본값)
+
 
 # ══════════════════════════════ 인라인 마크업 ══════════════════════════════
 # yaml 문장에는 HTML 대신 가벼운 표기를 쓴다.

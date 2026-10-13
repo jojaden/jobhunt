@@ -8,7 +8,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/AI_Agent-Skill-6E56CF?style=flat-square" alt="AI Agent Skill"/>
   <img src="https://img.shields.io/badge/AGENTS.md-Codex_·_Claude_·_Grok-444?style=flat-square" alt="Codex · Claude · Grok"/>
-  <img src="https://img.shields.io/badge/Python-3.9+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.9+"/>
+  <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+"/>
   <img src="https://img.shields.io/badge/Jobs-Korea-1E4FC2?style=flat-square" alt="Korean job boards"/>
   <img src="https://img.shields.io/badge/Output-A4_PDF_%2B_PNG-555?style=flat-square" alt="A4 PDF + PNG"/>
 </p>
@@ -75,7 +75,7 @@ Rendered from the fictional sample [`examples/example.yaml`](examples/example.ya
 
 ### 1. Install
 
-Requires Python 3.9+ and one of:
+Requires Python 3.10+ and one of:
 - **macOS** (Homebrew)
 - **Linux** (Debian/Ubuntu, apt)
 - **Windows** (WSL2 + Ubuntu): see [Windows (WSL2)](#windows-wsl2) below
