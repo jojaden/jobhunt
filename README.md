@@ -105,7 +105,7 @@ git·curl이 없으면 Ubuntu는 apt로 설치하고, macOS는 `xcode-select --i
 - `~/jobhunt/data`의 개인 자료는 그 자리에 그대로 둡니다.
 - git이 관리하던 도구 파일(코드·지침)과 `.git`은 `~/jobhunt/.old-repo/`로 옮깁니다. 지우지 않으므로 고쳐 둔 파일이 있었다면 거기서 찾을 수 있습니다.
 - 그 자리에는 설치된 스킬을 가리키는 짧은 `AGENTS.md`·`CLAUDE.md`가 생기고, 에이전트 스킬 연결도 새 위치로 바뀝니다.
-- cron·launchd에 `~/jobhunt/scripts/weekly.sh`를 등록해 두었다면 `~/.local/bin/jobhunt weekly`로 바꿔야 합니다. 설치 명령이 찾으면 알려 줍니다.
+- cron·launchd에 `~/jobhunt/scripts/weekly.sh`를 등록해 두었다면 예약은 그대로 돕니다. 설치 명령이 찾아서 그 경로가 `jobhunt weekly`를 부르도록 이어 둡니다.
 
 </details>
 
@@ -116,6 +116,26 @@ git·curl이 없으면 Ubuntu는 apt로 설치하고, macOS는 `xcode-select --i
 uv tool install --python 3.12 git+https://github.com/jojaden/jobhunt
 jobhunt setup
 ```
+
+</details>
+
+<details>
+<summary>Claude Code·Codex 플러그인으로 스킬 받기</summary>
+
+스킬을 링크 대신 에이전트의 플러그인으로 받을 수도 있습니다.
+
+```bash
+# Claude Code (2.1.275 이상. 대화창에서는 /plugin install jobhunt --marketplace jojaden/jobhunt)
+claude plugin install jobhunt --marketplace jojaden/jobhunt
+
+# Codex
+codex plugin marketplace add jojaden/jobhunt
+codex plugin add jobhunt@jobhunt
+```
+
+- **플러그인은 안내만 담습니다.** 지침(`SKILL.md`·`modes/`·`references/`)과 스크립트는 `jobhunt` 명령에 들어 있어서 위 한 줄 설치도 필요합니다. 없으면 플러그인이 처음 실행될 때 설치를 안내합니다. 그래서 지침과 스크립트 버전이 어긋나지 않고, 설치 명령으로 갱신하면 플러그인을 다시 받지 않아도 지침까지 새 버전이 됩니다.
+- **스킬이 두 번 보이지 않게** 플러그인이 있는 에이전트에는 `jobhunt setup`이 링크를 만들지 않습니다. 설치 명령을 먼저 실행했다면 플러그인을 설치한 뒤 `jobhunt setup --skill-only`를 한 번 실행해 링크를 정리하세요.
+- 슬래시 명령에는 플러그인 이름이 붙습니다: `/jobhunt:jobhunt scan`.
 
 </details>
 
@@ -141,7 +161,7 @@ jobhunt setup
 
 `jobhunt setup`이 하는 일:
 - **개인 자료 폴더 준비:** `~/jobhunt/data`에 폴더 구조와 예시 파일을 만듭니다(있는 파일은 건드리지 않음). 스킬을 읽지 않는 에이전트도 찾아가도록 `AGENTS.md`·`CLAUDE.md`를 둡니다.
-- **AI 에이전트 스킬 연결:** 설치된 에이전트를 찾아 스킬 폴더(Claude Code `~/.claude/skills`, Codex `~/.codex/skills`)에 설치된 스킬을 링크합니다. 업데이트하면 스킬도 바로 새 버전이 됩니다.
+- **AI 에이전트 스킬 연결:** 설치된 에이전트를 찾아 스킬 폴더(Claude Code `~/.claude/skills`, Codex `~/.codex/skills`)에 설치된 스킬을 링크합니다. 업데이트하면 스킬도 바로 새 버전이 됩니다. jobhunt 플러그인이 깔린 에이전트는 건너뜁니다.
 - **빌드 환경:** Playwright Chromium, 폰트(Pretendard, Noto CJK KR), poppler를 설치합니다.
 
 | 옵션 | 설명 |
@@ -304,6 +324,7 @@ AI 에이전트가 공고를 한 줄씩 분류하면(해 본 일인지, 필수 �
 ```
 install.sh                   한 줄 설치 (uv → jobhunt 설치·갱신 → jobhunt setup, 예전 git 설치 전환)
 pyproject.toml               jobhunt 패키지 (uv tool install 로 설치하는 명령)
+.claude-plugin/ plugin/      Claude Code·Codex 플러그인 저장소와 플러그인 (설치된 스킬로 안내만 함)
 AGENTS.md                    모든 AI 에이전트용 작업 안내 (CLAUDE.md 는 이 파일을 불러옴)
 LEGAL_DISCLAIMER.md          사용 범위와 면책
 CHANGELOG.md                 변경 기록 (버전마다 data/ 이전 안내)

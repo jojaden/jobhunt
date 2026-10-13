@@ -107,7 +107,7 @@ Running the same install command again switches you to the new layout.
 - Your personal data in `~/jobhunt/data` stays where it is.
 - The tool files git tracked (code and instructions) and `.git` move to `~/jobhunt/.old-repo/`. Nothing is deleted, so any file you had edited is still there.
 - Short `AGENTS.md` and `CLAUDE.md` files pointing at the installed skill take their place, and the agent skill links move to the new location.
-- If cron or launchd runs `~/jobhunt/scripts/weekly.sh`, change it to `~/.local/bin/jobhunt weekly`. The installer tells you when it finds one.
+- If cron or launchd runs `~/jobhunt/scripts/weekly.sh`, the schedule keeps working: the installer finds it and makes that path call `jobhunt weekly`.
 
 </details>
 
@@ -118,6 +118,26 @@ Running the same install command again switches you to the new layout.
 uv tool install --python 3.12 git+https://github.com/jojaden/jobhunt
 jobhunt setup
 ```
+
+</details>
+
+<details>
+<summary>Get the skill as a Claude Code or Codex plugin</summary>
+
+Instead of a link, the skill can come as an agent plugin.
+
+```bash
+# Claude Code (2.1.275 or later; in a chat: /plugin install jobhunt --marketplace jojaden/jobhunt)
+claude plugin install jobhunt --marketplace jojaden/jobhunt
+
+# Codex
+codex plugin marketplace add jojaden/jobhunt
+codex plugin add jobhunt@jobhunt
+```
+
+- **The plugin only points the way.** The instructions (`SKILL.md`, `modes/`, `references/`) and the scripts come with the `jobhunt` command, so the one-line install above is still needed; if it is missing, the plugin asks for it on first use. That keeps instructions and scripts on the same version, and updating with the installer updates the instructions too, without fetching the plugin again.
+- **So the skill doesn't show up twice,** `jobhunt setup` makes no link for an agent that has the plugin. If you ran the installer first, run `jobhunt setup --skill-only` once after installing the plugin to remove the link.
+- Slash commands carry the plugin name: `/jobhunt:jobhunt scan`.
 
 </details>
 
@@ -143,7 +163,7 @@ Good to know:
 
 What `jobhunt setup` does:
 - **Prepares your data folder:** creates the folder structure and example files in `~/jobhunt/data` (existing files are left alone), and adds `AGENTS.md` and `CLAUDE.md` so agents that don't load skills still find the installed instructions.
-- **Links the AI agent skill:** finds installed agents and links the installed skill into their skill folders (Claude Code `~/.claude/skills`, Codex `~/.codex/skills`). After an update the skill is the new version right away.
+- **Links the AI agent skill:** finds installed agents and links the installed skill into their skill folders (Claude Code `~/.claude/skills`, Codex `~/.codex/skills`). After an update the skill is the new version right away. Agents that have the jobhunt plugin are skipped.
 - **Build environment:** Playwright Chromium, fonts (Pretendard, Noto CJK KR), poppler.
 
 | Option | Meaning |
@@ -306,6 +326,7 @@ The tool (`SKILL.md`, `modes/`, `scripts/`, `references/`) is installed and upda
 ```
 install.sh                   One-line install (uv → install or update jobhunt → jobhunt setup, moves an old git install)
 pyproject.toml               The jobhunt package (the command uv tool install installs)
+.claude-plugin/ plugin/      Claude Code and Codex plugin marketplace and plugin (points to the installed skill)
 AGENTS.md                    Working guide for every AI agent (CLAUDE.md imports it)
 LEGAL_DISCLAIMER.md          Acceptable use and disclaimer (Korean)
 CHANGELOG.md                 Change log, with data/ migration notes per version (Korean)

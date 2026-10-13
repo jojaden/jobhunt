@@ -2,6 +2,7 @@
 """jobhunt 명령(cli.py)과 자료 위치, 주간 실행(weekly.py)."""
 import contextlib
 import io
+import json
 import os
 import re
 import subprocess
@@ -107,6 +108,39 @@ class Cli(unittest.TestCase):
         os.symlink(clone, link)
         self.assertIn("다른 jobhunt 사본", run().stdout)
         self.assertEqual(os.path.realpath(link), os.path.realpath(clone))
+
+    def test_setup_skips_plugin_agents(self):
+        """setup.sh: jobhunt 플러그인이 깔린 에이전트에는 링크를 만들지 않고, 이 설치가 만든 링크는 걷어 낸다."""
+        repo = os.path.dirname(SCRIPTS)
+        home = os.path.join(TMP, "plugin-home")
+        claude, codex = os.path.join(home, ".claude"), os.path.join(home, ".codex")
+        os.makedirs(os.path.join(claude, "plugins"), exist_ok=True)
+        os.makedirs(os.path.join(claude, "skills"), exist_ok=True)
+        os.makedirs(codex, exist_ok=True)
+        os.symlink(repo, os.path.join(claude, "skills", "jobhunt"))
+        installed = os.path.join(claude, "plugins", "installed_plugins.json")
+        K.write_text(installed, '{"version": 2, "plugins": {"jobhunt@jobhunt": [{"scope": "user"}]}}')
+        K.write_text(os.path.join(codex, "config.toml"), '[plugins."jobhunt@jobhunt"]\nenabled = true\n')
+        env = {k: v for k, v in os.environ.items() if k not in ("SKILLS_DIR", "CLAUDE_SKILLS_DIR")}
+        run = lambda: subprocess.run(["bash", os.path.join(SCRIPTS, "setup.sh"), "--skill-only"], capture_output=True, text=True,
+                                     env=dict(env, HOME=home), cwd=TMP).stdout
+        out = run()
+        self.assertIn("링크를 뺐습니다", out)
+        self.assertFalse(os.path.lexists(os.path.join(claude, "skills", "jobhunt")))
+        self.assertFalse(os.path.lexists(os.path.join(codex, "skills", "jobhunt")))
+        # 다른 프로젝트에만 깐 플러그인은 사용자 범위 스킬을 대신하지 못하므로 링크한다
+        K.write_text(installed, '{"version": 2, "plugins": {"jobhunt@jobhunt": [{"scope": "project", "projectPath": "/x"}]}}')
+        run()
+        self.assertEqual(os.path.realpath(os.path.join(claude, "skills", "jobhunt")), os.path.realpath(repo))
+
+    def test_plugin_matches_repo(self):
+        """플러그인 안내 스킬의 앞머리는 루트 SKILL.md 와 같고, 플러그인 버전은 pyproject.toml 버전과 같다."""
+        repo = os.path.dirname(SCRIPTS)
+        read = lambda *p: K.read_text(os.path.join(repo, *p))
+        front = lambda text: re.match(r"---\n.*?\n---\n", text, re.S).group(0)
+        self.assertEqual(front(read("plugin", "skills", "jobhunt", "SKILL.md")), front(read("SKILL.md")))
+        version = re.search(r'^version = "([^"]+)"', read("pyproject.toml"), re.M).group(1)
+        self.assertEqual(json.loads(read("plugin", ".claude-plugin", "plugin.json"))["version"], version)
 
 
 class Weekly(unittest.TestCase):
