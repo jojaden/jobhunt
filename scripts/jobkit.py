@@ -20,7 +20,11 @@ from typing import Dict, List, Optional
 
 import yaml
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+# 함께 배포되는 파일(references/ · modes/ · examples/)이 있는 곳: 저장소에서 돌면 저장소 루트, 설치본(uv tool)이면 패키지 폴더
+RES = _HERE if os.path.isdir(os.path.join(_HERE, "references")) else os.path.dirname(_HERE)
+# 개인 자료(data/)의 부모 폴더: JOBHUNT_HOME > 저장소에서 돌면 저장소 루트 > ~/jobhunt
+ROOT = os.path.abspath(os.path.expanduser(os.environ.get("JOBHUNT_HOME") or (RES if RES != _HERE else "~/jobhunt")))
 DATA = os.path.join(ROOT, "data")
 P = dict(
     sources=os.path.join(DATA, "search", "sources.yaml"),
@@ -29,6 +33,7 @@ P = dict(
     history=os.path.join(DATA, "search", "scan-history.tsv"),
     blacklist=os.path.join(DATA, "search", "blacklist.md"),
     inbox=os.path.join(DATA, "search", "inbox"),
+    reports=os.path.join(DATA, "search", "reports"),   # weekly.py 주간 보고서
     checks=os.path.join(DATA, "search", "manual-checks.yaml"),   # 스크립트가 못 도는 채널을 손으로 확인한 결과
     tracker=os.path.join(DATA, "applications", "tracker.md"),
 )
@@ -39,7 +44,7 @@ TODAY = date.today().isoformat()
 
 # ── HTTP ──────────────────────────────────────────────
 class _Redirect308(urllib.request.HTTPRedirectHandler):
-    """파이썬 3.9 urllib 은 308 을 따라가지 않는다 (3.11부터 지원). 307 처럼 다룬다."""
+    """파이썬 3.10 urllib 은 308 을 따라가지 않는다 (3.11부터 지원). 307 처럼 다룬다."""
     def http_error_308(self, req, fp, code, msg, headers):
         return self.http_error_307(req, fp, code, msg, headers)
 

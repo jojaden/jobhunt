@@ -30,7 +30,7 @@ import jobkit as K  # noqa: E402
 REG = os.path.join(K.DATA, "search", "companies.yaml")
 TECHBLOG = "https://raw.githubusercontent.com/maczniak/awesome-korean-techblog/master/README.md"
 GITHUB_ORGS = "https://raw.githubusercontent.com/channy/korea-devculture/main/github.json"
-SEED = os.path.join(K.ROOT, "references", "company_seed.yaml")        # 알려진 회사 (공개, 사용자가 더함)
+SEED = os.path.join(K.RES, "references", "company_seed.yaml")        # 알려진 회사 (공개, 사용자가 더함)
 SEED_LOCAL = os.path.join(K.DATA, "search", "company_seed.yaml")      # 개인 추가분 (선택)
 WANTED = "https://www.wanted.co.kr"
 WANTED_JOBS = [872, 674, 10110, 660, 899, 1634]   # 서버 · DevOps · 소프트웨어 엔지니어 · 웹 · 파이썬 · 머신러닝(회사 발견용, 공고 수집과 별개)

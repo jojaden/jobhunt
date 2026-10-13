@@ -1,0 +1,40 @@
+# jobhunt 를 명령 하나로 설치한다: uv tool install git+https://github.com/jojaden/jobhunt@vX.Y.Z
+# 패키지에는 scripts/(코드) 와 함께 references/ · modes/ · SKILL.md · examples/ 와 data/ 뼈대(README · 예시 파일)가 들어간다.
+# 개인 자료는 넣지 않는다: data/ 의 .gitignore 대상(개인 파일)은 빌드에서 빠진다.
+[project]
+name = "jobhunt"
+version = "1.1.0"
+description = "한국 채용 공고 수집 · 판정 · 이력서 빌드 (AI 에이전트 스킬 + LLM 없는 스크립트)"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "PyYAML>=6.0",
+    "playwright>=1.40",
+    "pdf2image>=1.16",
+    "pdfplumber>=0.10",
+]
+
+[project.scripts]
+jobhunt = "jobhunt.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/jojaden/jobhunt"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["scripts", "references", "modes", "examples", "data"]
+exclude = ["__pycache__", "*.sh"]
+
+[tool.hatch.build.targets.wheel.sources]
+"scripts" = "jobhunt"
+"references" = "jobhunt/references"
+"modes" = "jobhunt/modes"
+"examples" = "jobhunt/examples"
+"data" = "jobhunt/data"
+
+[tool.hatch.build.targets.wheel.force-include]
+"SKILL.md" = "jobhunt/SKILL.md"

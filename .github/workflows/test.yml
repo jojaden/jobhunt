@@ -1,8 +1,9 @@
 # 테스트: main 에 올라오는 커밋과 모든 PR 에서.
-#   tests   — 단위 테스트 (네트워크 없음) · OS 2 × Python 2 (지원 하한 3.9, 최신 3.12)
+#   tests   — 단위 테스트 (네트워크 없음) · OS 2 × Python 2 (지원 하한 3.10, 최신 3.12)
 #   lint    — ruff (ruff.toml: 쓰지 않는 import·변수, 정의 안 된 이름 같은 실수)
 #   privacy — data/ 의 개인 자료가 추적되고 있으면 실패 (scripts/privacy_check.py)
 #   build   — Ubuntu 에서 scripts/setup.sh 로 설치한 뒤 예시 이력서를 디자인 A·B·C 로 빌드 (render.py 가 check.py 까지 돌린다)
+#   package — 휠을 만들어 uv tool 로 설치한 jobhunt 명령이 저장소 밖에서 도는지 (함께 배포한 references/ 를 쓰는지)
 name: test
 
 on:
@@ -26,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python: ["3.9", "3.12"]
+        python: ["3.10", "3.12"]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -94,3 +95,30 @@ jobs:
           name: resume-example
           path: ${{ runner.temp }}/resume-*/
           retention-days: 7
+
+  package:
+    name: uv 설치 (ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: uv
+        run: python -m pip install uv
+      - name: 휠 빌드 · uv tool 설치
+        run: |
+          uv build --wheel -o dist
+          uv tool install --python 3.12 dist/*.whl
+      - name: 저장소 밖에서 jobhunt 명령
+        working-directory: ${{ runner.temp }}
+        run: |
+          export PATH="$(uv tool dir --bin):$PATH" JOBHUNT_HOME="$RUNNER_TEMP/home"
+          jobhunt --help
+          jobhunt where
+          jobhunt check "$GITHUB_WORKSPACE/examples/example.yaml" --offline
+          printf '# 가나다랩 — 백엔드 개발자\n\n- URL: https://a.example/1\n\n## 자격요건\n- Go 3년 이상\n' > body.md
+          jobhunt score init body.md | grep -q "Go 3년 이상"

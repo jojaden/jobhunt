@@ -12,6 +12,8 @@
 - 마감 확인: 약 170초 → 88초 (공고 214건 실측), 사이트끼리는 동시에 확인(같은 사이트는 지금처럼 하나씩). 사람인 공고도 마감을 판정해 "확인 불가"가 47건 → 5건, 목록의 마감일보다 일찍 마감된 공고도 잡음 (#34)
 - 응답을 gzip 으로 받음: 받는 양이 수집 66MB → 12MB, 마감 확인 24.5MB → 6MB (실측). 걸리는 시간은 그대로 (대부분 사이트별 요청 간격) (#36)
 - 수집 보고: LinkedIn 이 요청 제한(429)으로 일부만 받았으면 출처 줄에 "⚠ 일부만 — 못 받은 키워드 (다음 실행에 다시 받음)"으로 표시. 지금까지는 정상과 똑같이 보였음 (#38)
+- `jobhunt` 명령: `uv tool install` 로 설치할 수 있는 패키지(`pyproject.toml`). `jobhunt scan` · `alive` · `weekly` · `score` · `tracker` · `report` · `render` … 는 `python3 scripts/…py` 와 같고, `jobhunt where` 가 개인 자료 폴더를 알려 줌 (`JOBHUNT_HOME` > 저장소에서 돌면 저장소 > `~/jobhunt`). 주간 실행은 `weekly.py` 로 옮김(`bash scripts/weekly.sh` 도 그대로 동작) (#40)
+- Python 3.10 이상이 필요함 (3.9 지원 끝, Playwright 최신판이 3.10+) (#40)
 - **data/ 이전:** 없음
 
 ## v1.1.0 — 2026-10-08

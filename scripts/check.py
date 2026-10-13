@@ -24,10 +24,12 @@ import logging
 
 import yaml
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from jobkit import RES  # noqa: E402
+
 logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RULES_PATH = os.path.join(ROOT, "references", "style_rules.yaml")
+RULES_PATH = os.path.join(RES, "references", "style_rules.yaml")
 
 
 def load_rules():
@@ -36,7 +38,7 @@ def load_rules():
 
 
 # ══════════════════════════════ 형식 (스키마) ══════════════════════════════
-SCHEMA_PATH = os.path.join(ROOT, "references", "resume.schema.json")
+SCHEMA_PATH = os.path.join(RES, "references", "resume.schema.json")
 _TYPES = {"string": str, "integer": int, "number": (int, float), "boolean": bool, "array": list, "object": dict, "null": type(None)}
 _TNAME = {"string": "글자", "integer": "정수", "number": "숫자", "boolean": "참거짓", "array": "목록", "object": "항목", "null": "빈 값"}
 _KIND = {str: "글자", int: "정수", float: "숫자", bool: "참거짓", list: "목록", dict: "항목", type(None): "빈 값"}

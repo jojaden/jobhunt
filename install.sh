@@ -66,7 +66,7 @@ main() {
 
   need git git
   need python3 python3
-  python3 -c 'import sys; sys.exit(sys.version_info < (3, 9))' || die "Python 3.9 이상이 필요합니다 (지금: $(python3 -V 2>&1))."
+  python3 -c 'import sys; sys.exit(sys.version_info < (3, 10))' || die "Python 3.10 이상이 필요합니다 (지금: $(python3 -V 2>&1))."
 
   if [ -d "$DIR/.git" ]; then
     is_jobhunt "$DIR" || die "$DIR 는 다른 저장소입니다. JOBHUNT_DIR 로 다른 폴더를 지정하세요."
