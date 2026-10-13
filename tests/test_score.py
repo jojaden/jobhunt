@@ -95,7 +95,11 @@ class Score(unittest.TestCase):
                       ("Python 경험이 있으면 좋아요",),
                       ("Kotlin, Spring Boot, JPA, gRPC",),
                       ("JavaScript 가 아닌 Go 경험",),
-                      ("JAVA 또는 GO 개발 경험",)):
+                      ("JAVA 또는 GO 개발 경험",),
+                      ("Experience designing scalable distributed systems",),
+                      ("Kubernetes node 장애 대응 및 운영 경험",),
+                      ("Javadoc 기반 API 문서화 경험",),
+                      ("AI guard rails 설계 경험",)):
             self.assertEqual(S.stack_draft(req(*lines), known), "", lines)
         self.assertEqual(S.stack_draft(req("Java 개발 경험"), []), "")     # 사용자 언어를 적지 않았으면 초안 없음
         self.assertEqual(S.stack_draft(req("Go 개발 경험"), ["Java"]), "Go 개발 경험")

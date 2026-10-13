@@ -46,11 +46,11 @@ SECTIONS = [("preferred", r"우대|Preferred|Nice to have|Plus|더\s*좋(아요|
 
 # stack 관문 초안: 자격요건 줄의 언어(와 그 언어를 뜻하는 프레임워크)
 LANG_PATS = {
-    "Java": r"Java(?!\s*Script)|JVM|Spring|JPA", "Kotlin": r"Kotlin", "Python": r"Python|Django|FastAPI|Flask",
-    "Node.js": r"Node(\.?js)?|NestJS|Nest\.js|TypeScript|JavaScript", "C#": r"C#|\.NET", "C++": r"C\+\+",
-    "Ruby": r"Ruby|Rails", "PHP": r"PHP|Laravel|CodeIgniter", "Scala": r"Scala", "Rust": r"(?-i:Rust)",
-    "Go": r"(?-i:Go|GO)(?![A-Za-z])|Golang", "Shell": r"Shell|Bash",
-}
+    "Java": r"Java|JVM|Spring(\s*Boot)?|JPA", "Kotlin": r"Kotlin", "Python": r"Python|Django|FastAPI|Flask",
+    "Node.js": r"Node\.?js|NestJS|Nest\.js|TypeScript|JavaScript", "C#": r"C#|\.NET", "C++": r"C\+\+",
+    "Ruby": r"Ruby|(?-i:Rails)", "PHP": r"PHP|Laravel|CodeIgniter", "Scala": r"Scala", "Rust": r"(?-i:Rust)",
+    "Go": r"(?-i:Go|GO)|Golang", "Shell": r"Shell|Bash",
+}   # 앞뒤가 영문자가 아닐 때만: scalable·Javadoc·Kubernetes node 는 언어가 아니다
 # 언어를 특정하지 않은 것으로 보는 줄: 열린 목록, 대체 허용, 필수 아님
 _OPEN = (r"등|예[:)]|예를\s*들|하나\s*이상|1\s*개\s*이상|가리지|국한되지|무관|상관\s*없|관계\s*없|이에\s*준하는|그에\s*준하는|유사한"
          r"|필수가?\s*아닙|익숙하지\s*않|such as|e\.g\.|or similar|or equivalent|one or more|at least one|any\s+(programming\s+)?language")
@@ -198,6 +198,7 @@ def init(path: str) -> dict:
             if len(item) > 3:
                 out[cur].append({"line": item, **({"fit": ""} if cur == "work" else {"met": ""}), **({"key": False} if cur == "preferred" else {})})
     known = ((K.load_yaml(K.P["targets"]) or {}).get("gates") or {}).get("stack_languages")
+    known = [known] if isinstance(known, str) else known
     hit = stack_draft(out["required"], known)
     if hit:
         out["gates"]["stack"] = "fail"
@@ -207,7 +208,7 @@ def init(path: str) -> dict:
 
 
 def _langs(line: str):
-    return [k for k, p in LANG_PATS.items() if re.search(rf"(?<![A-Za-z])(?:{p})", line, re.I)]
+    return [k for k, p in LANG_PATS.items() if re.search(rf"(?<![A-Za-z])(?:{p})(?![A-Za-z])", line, re.I)]
 
 
 def stack_draft(required, known) -> str:
