@@ -25,6 +25,7 @@ gates:            # 하나라도 걸리면 제외. 근거 문장을 남긴다
   english_required: exclude     # 영어 필수·영어 면접·영어 전용 공고
   foreign_language_required: exclude   # 일본어 등 다른 외국어 필수
   stack: "경험 없는 언어(예: Go, Python)를 '필수'로 요구하면 제외. 우대에만 있으면 통과"
+  stack_languages: [Java, Kotlin]   # 실무로 써 본 언어. 적어 두면 score init 이 자격요건 줄로 stack 관문 초안을 채운다
   employment: [SI, 파견, 고객사 상주]
   years: { min: 2, max: 8 }     # 요구 연차가 이 범위를 벗어나면 제외
 
