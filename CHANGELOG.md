@@ -7,6 +7,8 @@
 
 ## 다음 버전
 
+## v1.2.0 — 2026-10-13
+
 - 공고 수집 속도: 약 520초 → 120초 (출처 136곳 실측). 사이트별로 동시에 받고(같은 사이트는 지금처럼 한 번에 하나, 앞 요청이 끝난 뒤 1초), 본문은 앞 출처가 끝나는 대로 받기 시작. greetinghr 홈페이지 링크 방식은 이미 본 공고의 상세를 다시 받지 않음 (#30)
 - 선별 모드가 읽는 양: 약 1.7MB → 약 70KB (지침 포함, 현재 자료로 실측). `scan-history.tsv`·`pipeline.md`·`tracker.md` 를 통째로 읽지 않고, 손으로 찾은 공고는 `scan.py --add` 로 중복 확인과 필터(제목 필터는 빼고, 에이전트가 읽고 고른 공고이므로)를 거쳐 기록, 선별 결과는 `score.py apply` 로 옮김. 첫 선별은 "재채점" 대신 "선별"로 적음 (#32)
 - 마감 확인: 약 170초 → 88초 (공고 214건 실측), 사이트끼리는 동시에 확인(같은 사이트는 지금처럼 하나씩). 사람인 공고도 마감을 판정해 "확인 불가"가 47건 → 5건, 목록의 마감일보다 일찍 마감된 공고도 잡음 (#34)
@@ -17,7 +19,9 @@
 - 설치가 uv 방식으로 바뀜: 한 줄 설치가 uv(없으면 설치) → `jobhunt` 명령 → `jobhunt setup`(개인 자료 폴더 준비 · 스킬 연결 · Chromium·폰트·poppler). 도구는 uv 가 관리하는 폴더에, 개인 자료는 `~/jobhunt/data` 에 따로 있음. 지침(SKILL.md · modes/ · references/)과 README 의 명령은 `jobhunt …` 으로. `jobhunt --version`(커밋 포함) · `jobhunt changes <버전>` · `jobhunt git-log` 추가 (#42)
 - Claude Code · Codex 플러그인: `claude plugin install jobhunt --marketplace jojaden/jobhunt`, `codex plugin marketplace add jojaden/jobhunt` → `codex plugin add jobhunt@jobhunt`. 플러그인은 설치된 jobhunt 의 지침으로 안내만 해서 버전이 어긋나지 않고, 플러그인이 있는 에이전트에는 `jobhunt setup` 이 스킬 링크를 만들지 않음 (#44)
 - 1차 선별: `score init` 이 자격요건 줄에서 쓰지 않는 언어를 꼭 요구하는 공고에 언어(stack) 관문 초안(`fail` + 근거 줄)을 채움. 에이전트는 그 줄만 확인. 기존 판정 719건과 대조해 통과시킨 공고를 잘못 떨어뜨린 경우 0건, 언어 관문 탈락의 59%를 초안으로 잡음. 또 "Preferred Qualifications"·"이런 분이면 더 좋아요" 아래 우대 줄이 자격요건으로 들어가던 것을 고침 (#46)
-- **data/ 이전:** 예전에 git clone 으로 설치했다면 같은 설치 명령을 다시 실행하세요. `~/jobhunt/data` 는 그대로 두고, git 이 관리하던 코드·지침 파일과 `.git` 을 `~/jobhunt/.old-repo/` 로 옮깁니다(지우지 않음, 고친 파일도 그대로). cron·launchd 가 `~/jobhunt/scripts/weekly.sh` 를 부르면 그 경로가 `jobhunt weekly` 를 부르도록 이어 둡니다 (#42). 언어 관문 초안을 쓰려면 `data/profile/targets.yaml` 의 `gates` 에 `stack_languages: [실무로 쓴 언어, …]` 를 넣으세요(넣지 않으면 지금과 같음) (#46)
+- **data/ 이전:**
+  - 예전에 git clone 으로 설치했다면 같은 설치 명령을 다시 실행하세요. `~/jobhunt/data` 는 그대로 두고, git 이 관리하던 코드·지침 파일과 `.git` 을 `~/jobhunt/.old-repo/` 로 옮깁니다(지우지 않음, 고친 파일도 그대로). cron·launchd 가 `~/jobhunt/scripts/weekly.sh` 를 부르면 그 경로가 `jobhunt weekly` 를 부르도록 이어 둡니다 (#42)
+  - 언어 관문 초안을 쓰려면 `data/profile/targets.yaml` 의 `gates` 에 `stack_languages: [실무로 쓴 언어, …]` 를 넣으세요(넣지 않으면 지금과 같음) (#46)
 
 ## v1.1.0 — 2026-10-08
 
