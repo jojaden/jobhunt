@@ -15,6 +15,8 @@ import json
 import os
 import re
 import sys
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import urlsplit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -68,15 +70,28 @@ def check(url: str):
         return None, f"{type(e).__name__}: {e}"
 
 
+def _lane(urls):
+    return [(u, check(u)) for u in urls]
+
+
 def run(targets):
-    seen, res = set(), []
+    """주소마다 한 번. 사이트마다 줄 하나로 차례로 확인하고 사이트끼리는 동시에 한다 (요청 간격은 jobkit.http_get 이 지킨다)."""
+    first = {}
     for t in targets:
-        if t["url"] in seen:
-            continue
-        seen.add(t["url"])
-        ok, how = check(t["url"])
-        res.append(dict(t, alive=ok, how=how))
-    return res
+        first.setdefault(t["url"], t)
+    lanes = {}
+    for u in first:
+        lanes.setdefault(K.site(urlsplit(u).netloc), []).append(u)
+    pool = ThreadPoolExecutor(max(len(lanes), 1))
+    try:
+        got = dict(p for lane in pool.map(_lane, lanes.values()) for p in lane)
+    except KeyboardInterrupt:
+        # 파일은 확인이 다 끝난 뒤에 쓰므로 남는 것이 없다. 도는 스레드를 기다리지 않고 바로 끝낸다
+        print("\n중단 — 쓴 파일 없음", file=sys.stderr, flush=True)
+        os._exit(130)
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
+    return [dict(t, alive=got[u][0], how=got[u][1]) for u, t in first.items()]
 
 
 def main(argv=None):
