@@ -193,8 +193,8 @@ Starting each agent:
 
 | Agent | Start |
 |---|---|
-| Codex | `cd ~/jobhunt && codex` — reads `AGENTS.md`, and the skill is linked into `~/.codex/skills` |
-| Claude Code | `cd ~/jobhunt && claude` — `CLAUDE.md` imports `AGENTS.md`, and the skill is linked into `~/.claude/skills` |
+| Codex | `cd ~/jobhunt && codex` — reads `AGENTS.md`, and the skill comes from `~/.codex/skills` or the plugin |
+| Claude Code | `cd ~/jobhunt && claude` — `CLAUDE.md` imports `AGENTS.md`, and the skill comes from `~/.claude/skills` or the plugin |
 | Grok, Gemini, Cursor, others | open the agent in `~/jobhunt` and say "read `AGENTS.md` and start" |
 
 Features that differ between agents, such as web search (Firecrawl, …) or publishing HTML pages (Claude Artifacts, …), are used when present; without them the agent gives you the file path or reports that channel as not scanned.
@@ -244,6 +244,7 @@ jobhunt where                        # where your data folder is (jobhunt --help
 - **What gets filtered out:** title keywords, required years (when the posting states them), location, postings you've already seen (including the same posting on another site), blocked companies, companies you applied to recently (6-month cooldown by default), and English-only JDs (when enabled).
 - **What doesn't:** the tech stack is never used as a filter at collection time. Narrowing the search to one language drops good postings that accept any language. The script only attaches a required/preferred hint, and the stack is judged during triage. There, when a qualification demands a language you don't use (`stack_languages` in `targets.yaml`, and only with no "etc." or "or equivalent" leeway), the script drafts the exclusion with the sentence behind it and the agent only checks that sentence.
 - **Open or closed:** `jobhunt alive` checks each site's detail API. A posting missing from a public list is not treated as closed.
+- **Speed and manners:** different sites are fetched at the same time; each site gets one request at a time, 1s after the previous response (1.6s for LinkedIn). Collecting 136 sources takes about 2 minutes, the closing check about a minute and a half. Rate limits (429) are never worked around: if LinkedIn cuts a run short, the scan keeps what it got, marks the source "⚠ 일부만" (partial) in the report, and the missed postings come in on the next run.
 
 ## 📊 2. Fit Evaluation
 

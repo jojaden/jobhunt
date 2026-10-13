@@ -57,7 +57,7 @@ python3 scripts/scan.py --only toss,wanted        # filter by provider module na
 python3 scripts/scan.py --no-detail | --seed
 python3 scripts/scan.py --add <found.yaml>             # postings found by hand: dedup, filters except title, logging as collected ones
 python3 scripts/alive.py [--write] [--json]
-bash scripts/weekly.sh [--since YYYY-MM-DD]       # scan → alive --write → tracker report → data/search/reports/
+python3 scripts/weekly.py [--since YYYY-MM-DD]    # scan → alive --write → tracker report → data/search/reports/ (scripts/weekly.sh forwards here)
 
 # scoring / tracking / discovery
 python3 scripts/score.py init <body.md> -o <judgment.yaml>;  python3 scripts/score.py <judgment.yaml>...;  ... apply <judgment.yaml>...

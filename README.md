@@ -191,8 +191,8 @@ curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | b
 
 | 에이전트 | 시작 |
 |---|---|
-| Codex | `cd ~/jobhunt && codex` — `AGENTS.md`를 읽고, 스킬(`~/.codex/skills`)로도 연결됩니다 |
-| Claude Code | `cd ~/jobhunt && claude` — `CLAUDE.md`가 `AGENTS.md`를 불러오고, 스킬(`~/.claude/skills`)로도 연결됩니다 |
+| Codex | `cd ~/jobhunt && codex` — `AGENTS.md`를 읽고, 스킬(`~/.codex/skills` 또는 플러그인)로도 연결됩니다 |
+| Claude Code | `cd ~/jobhunt && claude` — `CLAUDE.md`가 `AGENTS.md`를 불러오고, 스킬(`~/.claude/skills` 또는 플러그인)로도 연결됩니다 |
 | Grok·Gemini·Cursor 등 | `~/jobhunt`에서 에이전트를 열고 "`AGENTS.md`를 읽고 시작해줘"라고 하면 됩니다 |
 
 웹 검색(Firecrawl 등)이나 HTML 페이지 게시(Claude Artifact 등)처럼 에이전트마다 다른 기능은 있으면 쓰고, 없으면 파일 경로를 알려 주거나 해당 채널을 "미수집"으로 보고합니다.
@@ -242,6 +242,7 @@ jobhunt where                        # 개인 자료 폴더 위치 (jobhunt --he
 - **거르는 기준:** 제목 키워드, 요구 연차(숫자가 있을 때), 근무지, 이미 본 공고(다른 사이트에 같은 공고 포함), 제외 회사, 지원 후 재지원 쿨다운(기본 6개월), 영어 전용 JD(설정 시).
 - **거르지 않는 기준:** 기술 스택은 수집할 때 거르지 않습니다. 검색어를 특정 언어로 좁히면 언어를 따지지 않는 좋은 공고가 빠지기 때문이에요. 수집 단계에서는 자격요건 문장의 필수/우대 힌트만 붙이고, 판정은 선별 단계에서 합니다. 선별 때 자격요건이 내가 쓰지 않는 언어를 꼭 요구하면(`targets.yaml`의 `stack_languages`로 판단, "등"·"이에 준하는" 같은 여지가 없을 때만) 스크립트가 제외 초안과 근거 문장을 채우고, 에이전트는 그 문장만 확인합니다.
 - **마감 판정:** `jobhunt alive`가 사이트별 상세 API로 확인합니다. 공개 목록에서 사라졌다고 마감으로 보지 않습니다.
+- **속도와 예의:** 서로 다른 사이트는 동시에 받고, 같은 사이트에는 한 번에 하나씩 앞 응답이 끝난 뒤 1초(LinkedIn 1.6초)를 두고 요청합니다. 출처 136곳 수집이 약 2분, 마감 확인이 약 1분 반입니다. 요청 제한(429)은 우회하지 않습니다. LinkedIn이 중간에 막으면 받은 데까지만 쓰고 수집 보고에 "⚠ 일부만"으로 남기며, 못 받은 공고는 다음 실행에 다시 받습니다.
 
 ## 📊 2. 맞춤도 평가
 
