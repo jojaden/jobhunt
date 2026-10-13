@@ -158,7 +158,7 @@ def main(argv=None):
                     if key not in lanes:
                         lanes[key] = ThreadPoolExecutor(1)
                     pending.append(lanes[key].submit(_detail, mod, j))
-            stats[name] = (len(jobs), n_new)
+            stats[name] = (len(jobs), n_new, getattr(jobs, "why", ""))
 
         for i, _ in enumerate(as_completed(pending), 1):
             if i % 25 == 0:
@@ -212,8 +212,8 @@ def main(argv=None):
 
     # 보고
     print(f"── 공고 수집 {K.TODAY} {'(dry-run: 파일 안 씀)' if a.dry_run else ''}")
-    for name, (n, new) in stats.items():
-        print(f"  {name:<22} 받음 {n:>4} · 새 공고 {new}")
+    for name, (n, new, why) in stats.items():
+        print(f"  {name:<22} 받음 {n:>4} · 새 공고 {new}" + (f" · ⚠ 일부만 — {why} (다음 실행에 다시 받음)" if why else ""))
     for name, err in errors.items():
         print(f"  {name:<22} ✗ {err}")
     if manual:

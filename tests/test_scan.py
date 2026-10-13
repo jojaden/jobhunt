@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """scan.py --add: 손으로 찾은 공고도 중복 확인과 필터(제목 필터 빼고)를 거쳐 기록된다."""
+import contextlib
+import io
 import os
 import unittest
+from types import SimpleNamespace
 
 import yaml
 
@@ -46,6 +49,21 @@ class Add(unittest.TestCase):
         body = os.path.join(K.P["inbox"], os.path.basename(line.split("본문: ")[1]))
         self.assertIn("- Go 3년 이상", K.read_text(body))
         self.assertNotIn("busan", md)
+
+
+class Report(unittest.TestCase):
+    def test_partial_marked(self):
+        """출처가 일부만 받았으면(Partial) 요약 줄에 이유를 남긴다."""
+        mod = SimpleNamespace(__name__="fake", collect=lambda cfg: K.Partial([], "요청 제한(429)으로 못 받음: 'x' 2쪽부터"),
+                              detail=lambda j: "")
+        saved, scan.plan = scan.plan, lambda sources, only: ([("가짜", mod, {})], [])
+        out = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out):
+                scan.main(["--dry-run", "--no-detail"])
+        finally:
+            scan.plan = saved
+        self.assertIn("가짜                     받음    0 · 새 공고 0 · ⚠ 일부만 — 요청 제한(429)으로 못 받음: 'x' 2쪽부터", out.getvalue())
 
 
 if __name__ == "__main__":

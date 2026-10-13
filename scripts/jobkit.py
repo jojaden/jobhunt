@@ -112,6 +112,14 @@ class ShapeError(Exception):
     """응답 형식이 예상과 다름. 조용히 0건으로 넘기지 않고 보고한다."""
 
 
+class Partial(list):
+    """일부만 받은 collect 결과 (예: 요청 제한으로 멈춤). 받은 공고는 그대로 쓰고, why 는 수집 보고에 남긴다."""
+
+    def __init__(self, jobs, why: str):
+        super().__init__(jobs)
+        self.why = why
+
+
 def html_text(s: Optional[str]) -> str:
     if not s:
         return ""
