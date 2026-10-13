@@ -242,7 +242,7 @@ jobhunt where                        # where your data folder is (jobhunt --help
 | JobKorea, Remember, career sites that block bots or need a token | HTML / browser / Firecrawl | The AI agent, following each company's reading recipe (`browse` in `sources.yaml`) and the per-type table in [`references/judgment.md`](references/judgment.md) §2; results appear in the report's "직접 확인한 곳" section |
 
 - **What gets filtered out:** title keywords, required years (when the posting states them), location, postings you've already seen (including the same posting on another site), blocked companies, companies you applied to recently (6-month cooldown by default), and English-only JDs (when enabled).
-- **What doesn't:** the tech stack is never used as a filter at collection time. Narrowing the search to one language drops good postings that accept any language. The script only attaches a required/preferred hint, and the stack is judged during triage.
+- **What doesn't:** the tech stack is never used as a filter at collection time. Narrowing the search to one language drops good postings that accept any language. The script only attaches a required/preferred hint, and the stack is judged during triage. There, when a qualification demands a language you don't use (`stack_languages` in `targets.yaml`, and only with no "etc." or "or equivalent" leeway), the script drafts the exclusion with the sentence behind it and the agent only checks that sentence.
 - **Open or closed:** `jobhunt alive` checks each site's detail API. A posting missing from a public list is not treated as closed.
 
 ## 📊 2. Fit Evaluation
@@ -308,7 +308,7 @@ The tool (`SKILL.md`, `modes/`, `scripts/`, `references/`) is installed and upda
 
 | What the skill learns | Where it goes |
 |---|---|
-| Target roles, career narrative, salary, location/language/stack rules, bonus and penalty signals | `data/profile/targets.yaml` |
+| Target roles, career narrative, salary, location/language/stack rules (languages used at work: `stack_languages`), bonus and penalty signals | `data/profile/targets.yaml` |
 | Short triage brief | `data/profile/brief.md` |
 | Project evidence and confirmed facts | `data/experience/` |
 | House rules, report format, resume wording decisions | `data/preferences/standing.md` |
