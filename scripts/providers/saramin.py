@@ -4,7 +4,7 @@
 목록: /zf_user/search/recruit?searchword={키워드}&recruitPageCount=100&exp_cd=2&sort=reg_dt 의 div.item_recruit
       (exp_cd=2 경력, 최신순 100건). 근무지·경력은 job_condition 의 첫째·둘째 span.
 본문: /zf_user/jobs/relay/view-detail?rec_idx={id}&rec_seq=0 (relay/view 는 본문이 iframe 이라 비어 있다).
-마감 판정은 아직 방법이 없어 None 을 돌려준다.
+마감: /zf_user/jobs/view?rec_idx={id} 의 "접수기간 및 방법"·지원 버튼 (2026-10-13 실측). relay/view 는 이 부분을 스크립트로 채워 비어 있다.
 """
 import re
 from datetime import date
@@ -16,6 +16,7 @@ from jobkit import Job, ShapeError, html_text, http_get
 SEARCH = "https://www.saramin.co.kr/zf_user/search/recruit?searchword={}&recruitPageCount=100&exp_cd=2&sort=reg_dt"
 VIEW = "https://www.saramin.co.kr/zf_user/jobs/relay/view?rec_idx={}"
 DETAIL = "https://www.saramin.co.kr/zf_user/jobs/relay/view-detail?rec_idx={}&rec_seq=0"
+STATUS = "https://www.saramin.co.kr/zf_user/jobs/view?rec_idx={}"
 
 
 def _txt(s: str) -> str:
@@ -77,4 +78,16 @@ def handles(url: str) -> bool:
 
 
 def alive(url: str) -> Optional[bool]:
-    return None
+    """마감 표시(마감되었습니다 · 접수마감 버튼)면 False, 지원 버튼이면 True, 지워진 공고(404)는 False, 그 밖은 None."""
+    m = re.search(r"rec_idx=(\d+)", url)
+    if not m:
+        return None
+    status, body = http_get(STATUS.format(m.group(1)), accept="text/html")
+    if status == 404:
+        return False
+    if status != 200:
+        return None
+    btn = re.search(r'<button\s+class="sri_btn_lg[^"]*"\s+title="([^"]*)"', body)
+    if 'class="copy end">마감되었습니다' in body or (btn and btn.group(1) == "접수마감"):
+        return False
+    return True if btn else None
