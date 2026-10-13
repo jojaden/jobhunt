@@ -29,12 +29,33 @@ done
 skill_name() { sed -n 's/^name:[[:space:]]*//p' "$1/SKILL.md" 2>/dev/null | head -1; }
 is_installed_copy() { case "$1" in */tools/jobhunt/lib/*/site-packages/jobhunt) return 0 ;; esac; return 1; }   # uv tool 설치본
 
+plugin_installed() {   # 이 에이전트에 jobhunt 플러그인이 (사용자 범위로) 깔려 있나 — 그러면 플러그인이 스킬을 띄운다
+  case "$1" in
+    "$HOME/.claude/skills")
+      "$PY" -c 'import json,sys; d=json.load(open(sys.argv[1])).get("plugins", {}); sys.exit(not any(e.get("scope") == "user" for k, v in d.items() if k.startswith("jobhunt@") for e in v))' \
+        "$HOME/.claude/plugins/installed_plugins.json" 2>/dev/null ;;
+    "$HOME/.codex/skills") grep -q '^\[plugins\."jobhunt@' "$HOME/.codex/config.toml" 2>/dev/null ;;
+    *) return 1 ;;
+  esac
+}
+
 link_skill() {
   # 스킬 폴더(저장소 또는 설치된 패키지 폴더)를 그대로 연결한다. 복사하지 않으므로 업데이트가 스킬에 바로 반영된다.
   local repo name dir="$1" dest target
   repo="$SRC"
   name="$(skill_name "$SRC")"
   dest="$dir/$name"
+  if plugin_installed "$dir"; then
+    # 같은 스킬이 두 번 보이지 않게 링크는 만들지 않고, 예전에 이 설치가 만든 링크는 걷어 낸다
+    target="$(cd "$dest" 2>/dev/null && pwd -P || true)"
+    if [ -L "$dest" ] && { [ "$target" = "$repo" ] || is_installed_copy "$target"; }; then
+      rm "$dest"
+      echo "  jobhunt 플러그인이 있어 $dest 링크를 뺐습니다"
+    else
+      echo "  jobhunt 플러그인이 있어 $dir 에는 연결하지 않습니다"
+    fi
+    return
+  fi
   mkdir -p "$dir"
   if [ -L "$dest" ]; then
     target="$(cd "$dest" 2>/dev/null && pwd -P || true)"

@@ -1,0 +1,18 @@
+{
+  "name": "jobhunt",
+  "owner": {
+    "name": "jojaden",
+    "url": "https://github.com/jojaden"
+  },
+  "description": "jobhunt: 한국 개발자 채용 공고 수집 · 판정 · 맞춤 이력서 · 면접 준비",
+  "plugins": [
+    {
+      "name": "jobhunt",
+      "source": "./plugin",
+      "description": "한국 개발자 구직을 처음부터 끝까지: 공고 수집(원티드 · 점핏 · LinkedIn · 사람인 · 회사 채용 페이지), 경험 대비 판정, 맞춤 이력서 PDF, 자기소개서, 회사 조사, 면접 준비, 지원 기록. jobhunt 명령(uv tool)이 함께 필요합니다.",
+      "category": "productivity",
+      "homepage": "https://github.com/jojaden/jobhunt",
+      "keywords": ["job-search", "resume", "korean", "interview"]
+    }
+  ]
+}
