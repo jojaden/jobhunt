@@ -4,12 +4,12 @@ Manage the application tracker `data/applications/tracker.md`. Read `modes/_shar
 
 ## How to record
 
-Change the table only through `scripts/tracker.py` (it validates format and state values and syncs pipeline.md).
+Change the table only through `jobhunt tracker` (it validates format and state values and syncs pipeline.md).
 
 ```bash
-python3 scripts/tracker.py add --company 회사 --role 포지션 --score 4.2/5 --eval data/job_postings/<공고>.eval.md --memo "서울 강남 · 원티드 · <url>"
-python3 scripts/tracker.py set <번호|회사> 지원함 [--note "메모"] [--pdf]
-python3 scripts/tracker.py report [--alive] [--since YYYY-MM-DD]
+jobhunt tracker add --company 회사 --role 포지션 --score 4.2/5 --eval data/job_postings/<공고>.eval.md --memo "서울 강남 · 원티드 · <url>"
+jobhunt tracker set <번호|회사> 지원함 [--note "메모"] [--pdf]
+jobhunt tracker report [--alive] [--since YYYY-MM-DD]
 ```
 
 ## Format

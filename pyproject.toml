@@ -1,6 +1,7 @@
 # jobhunt 를 명령 하나로 설치한다: uv tool install git+https://github.com/jojaden/jobhunt@vX.Y.Z
-# 패키지에는 scripts/(코드) 와 함께 references/ · modes/ · SKILL.md · examples/ 와 data/ 뼈대(README · 예시 파일)가 들어간다.
-# 개인 자료는 넣지 않는다: data/ 의 .gitignore 대상(개인 파일)은 빌드에서 빠진다.
+# 패키지에는 scripts/(코드) 와 함께 references/ · modes/ · docs/ · SKILL.md · CHANGELOG.md · examples/ 와
+# data/ 뼈대(README · 예시 파일, skeleton/data — jobhunt setup 이 개인 자료 폴더로 복사)가 들어간다.
+# 개인 자료는 넣지 않는다: data/ 는 README · .gitkeep · *.example.* 만 고르고(.gitignore 허용 목록과 같음), 나머지는 빠진다.
 [project]
 name = "jobhunt"
 version = "1.1.0"
@@ -26,15 +27,20 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-only-include = ["scripts", "references", "modes", "examples", "data"]
-exclude = ["__pycache__", "*.sh"]
+include = [
+    "scripts/**", "references/**", "modes/**", "docs/**", "examples/**",
+    "data/README.md", "data/*/README.md", "data/*/.gitkeep", "data/*/*.example.*",
+]
+exclude = ["__pycache__"]
 
 [tool.hatch.build.targets.wheel.sources]
 "scripts" = "jobhunt"
 "references" = "jobhunt/references"
 "modes" = "jobhunt/modes"
 "examples" = "jobhunt/examples"
-"data" = "jobhunt/data"
+"docs" = "jobhunt/docs"
+"data" = "jobhunt/skeleton/data"
 
 [tool.hatch.build.targets.wheel.force-include]
 "SKILL.md" = "jobhunt/SKILL.md"
+"CHANGELOG.md" = "jobhunt/CHANGELOG.md"

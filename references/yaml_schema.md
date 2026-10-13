@@ -1,6 +1,6 @@
 # resume.yaml format
 
-Content is yaml, layout is `scripts/render.py`. Personal details (name, email, phone) stay out of the yaml and are read from `data/profile/profile.yaml`.
+Content is yaml, layout is `jobhunt render`. Personal details (name, email, phone) stay out of the yaml and are read from `data/profile/profile.yaml`.
 
 The machine-readable version is `references/resume.schema.json` (JSON Schema). `render.py` and `check.py` validate against it before anything else, so an unknown key (a typo such as `sumary`), a wrong type or a value outside the allowed set stops the build with its location. Keep the schema and this page in sync when either changes. Start every resume yaml with the schema line so editors (VS Code YAML extension and others using yaml-language-server) autocomplete and flag errors as you type:
 
