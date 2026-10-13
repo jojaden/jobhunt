@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import gzip
 import html
 import json
 import os
@@ -66,7 +67,7 @@ def site(host: str) -> str:
 def http_get(url: str, accept: str = "application/json", delay: float = 1.0, timeout: int = 20, headers: Optional[dict] = None,
              data: Optional[bytes] = None):
     """(status, text). 같은 사이트에는 한 번에 하나씩, 앞 요청이 끝난 뒤 delay 초 간격을 둔다 (references/sources.md 공통 규칙).
-    스레드에서 동시에 불러도 지켜진다. data 가 있으면 POST."""
+    스레드에서 동시에 불러도 지켜진다. data 가 있으면 POST. gzip 으로 받아 풀어서 돌려준다 (안 하는 사이트는 그대로)."""
     key = site(url.split("/")[2])
     with _locks_guard:
         lock = _locks.setdefault(key, threading.Lock())
@@ -74,10 +75,14 @@ def http_get(url: str, accept: str = "application/json", delay: float = 1.0, tim
         wait = _last.get(key, 0) + delay - time.time()
         if wait > 0:
             time.sleep(wait)
-        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": accept, **(headers or {})}, data=data)
+        req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": accept, "Accept-Encoding": "gzip", **(headers or {})},
+                                     data=data)
         try:
             with _OPENER.open(req, timeout=timeout) as r:
-                status, body = r.status, r.read().decode("utf-8", "replace")
+                raw = r.read()
+                if (r.headers.get("Content-Encoding") or "").lower() == "gzip":
+                    raw = gzip.decompress(raw)
+                status, body = r.status, raw.decode("utf-8", "replace")
         except urllib.error.HTTPError as e:
             status, body = e.code, ""
         finally:

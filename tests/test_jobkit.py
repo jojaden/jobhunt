@@ -147,6 +147,7 @@ class Http(unittest.TestCase):
 
         class Resp:
             status = 200
+            headers = {}
 
             def __enter__(self):
                 return self
@@ -177,6 +178,41 @@ class Http(unittest.TestCase):
         first, second = sorted(urls[:2], key=starts.get)
         self.assertGreaterEqual(starts[second] - ends[first], 0.29)
         self.assertLess(starts[urls[2]], starts[second])
+
+    def test_gzip(self):
+        """gzip 을 달라고 보내고, gzip 응답은 풀어서, 압축 안 한 응답은 그대로 돌려준다."""
+        import gzip
+        sent = []
+
+        class Resp:
+            status = 200
+
+            def __init__(self, body, enc):
+                self.body, self.headers = body, ({"Content-Encoding": enc} if enc else {})
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return self.body
+
+        class Opener:
+            def open(self, req, timeout):
+                sent.append(req.get_header("Accept-encoding"))
+                if "zipped" in req.full_url:
+                    return Resp(gzip.compress("가나다 본문".encode()), "gzip")
+                return Resp("가나다 본문".encode(), None)
+
+        saved, K._OPENER = K._OPENER, Opener()
+        try:
+            got = [K.http_get(u, delay=0) for u in ("https://a.gzip.test/zipped", "https://b.gzip.test/plain")]
+        finally:
+            K._OPENER = saved
+        self.assertEqual(got, [(200, "가나다 본문"), (200, "가나다 본문")])
+        self.assertEqual(sent, ["gzip", "gzip"])
 
 
 if __name__ == "__main__":
