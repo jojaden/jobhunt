@@ -50,6 +50,39 @@ class Add(unittest.TestCase):
         self.assertIn("- Go 3년 이상", K.read_text(body))
         self.assertNotIn("busan", md)
 
+    def test_near_flag(self):
+        """다른 사이트의 비슷한 공고는 거르지 않고 줄과 본문에 표시한다. "(주)" 만 같은 다른 회사는 표시도 안 한다 (#56)."""
+        with open(K.P["pipeline"], "a", encoding="utf-8") as f:
+            f.write("- [ ] https://b.example/1 | 사아자랩 | [경력] 백엔드 엔지니어 (결제) | 3.8\n"
+                    "- [ ] https://b.example/2 | (주)다라테크 | 백엔드 개발자 채용 | 3.8\n")
+        path = os.path.join(TMP, "found.yaml")
+        with open(path, "w", encoding="utf-8") as f:
+            yaml.safe_dump([dict(url="https://c.example/1", company="사아자랩(Saaja)", title="백엔드 엔지니어 (결제)", source="jobkorea"),
+                            dict(url="https://c.example/2", company="(주)마바소프트", title="백엔드 개발자 채용", source="jobkorea")],
+                           f, allow_unicode=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(scan.main(["--add", path]), 0)
+        lines = {l.split(" | ")[0][6:]: l for l in K.read_text(K.P["pipeline"]).split("\n") if "c.example" in l}
+        self.assertIn("[같은 공고일 수 있음]", lines["https://c.example/1"])
+        self.assertNotIn("b.example", lines["https://c.example/1"])          # 다른 줄 URL 은 본문에만
+        body = os.path.join(K.P["inbox"], os.path.basename(lines["https://c.example/1"].split("본문: ")[1]))
+        self.assertIn("- 같은 공고일 수 있음: https://b.example/1 (사아자랩 / [경력] 백엔드 엔지니어 (결제))", K.read_text(body))
+        self.assertNotIn("같은 공고일 수 있음", lines["https://c.example/2"])
+
+    def test_recheck_dups(self):
+        """예전 버전이 "(주)" 로 잘못 거른 skipped_dup 줄만 지운다. 진짜 중복은 남긴다."""
+        K.append_history([
+            dict(url="https://d.example/1", company="(주)다라테크", title="백엔드 개발자 채용", status="added"),
+            dict(url="https://d.example/2", company="(주)마바소프트", title="백엔드 개발자 채용", status="skipped_dup"),
+            dict(url="https://d.example/3", company="바사아", title="[바사아] 백엔드", status="skipped_dup"),   # 대기의 바사아 / 백엔드
+            dict(url="https://d.example/4", company="다라테크", title="백엔드 개발자", status="skipped_dup"),   # 1 번과 같은 공고
+        ])
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(scan.main(["--recheck-dups", "--dry-run"]), 0)
+            self.assertEqual(len(K.read_history()), 4)
+            self.assertEqual(scan.main(["--recheck-dups"]), 0)
+        self.assertEqual([r["url"] for r in K.read_history()], ["https://d.example/1", "https://d.example/3", "https://d.example/4"])
+
 
 class Report(unittest.TestCase):
     def test_partial_marked(self):

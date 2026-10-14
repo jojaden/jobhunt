@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import difflib
 import gzip
 import html
 import json
@@ -17,6 +18,7 @@ import urllib.request
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Dict, List, Optional
+from urllib.parse import urlsplit
 
 import yaml
 
@@ -314,31 +316,77 @@ def pipeline_urls() -> set:
     return set(URL_RE.findall(read_text(P["pipeline"])))
 
 
-def dup_keys(company: str, title: str) -> set:
-    """같은 공고를 다른 사이트에서 만났는지 보는 (회사, 포지션) 키들.
-    회사는 괄호 안·밖 표기를 모두 후보로 ("에이비일팔공(AB180)" ↔ "AB180").
-    포지션은 기호·공백과 '채용·모집·영입', 맨 앞 [회사명] 꼬리표만 뗀다 — 괄호 안 팀 이름은 남겨 다른 공고가 합쳐지지 않게."""
+# 회사 이름이 아니라 법인 형태 표기. 괄호 안 조각을 회사 후보로 볼 때 뺀다 ("(주)가나" 의 "주")
+_LEGAL = {"주", "유", "재", "사", "합", "주식회사", "유한회사", "유한책임회사", "합자회사", "합명회사", "재단법인", "사단법인"}
+
+
+def _companies(company: str) -> set:
+    """회사 이름 후보들. 괄호 안·밖 표기와 "A - B" 를 모두 후보로 ("에이비일팔공(AB180)" ↔ "AB180")."""
     s = company or ""
     parts = re.findall(r"\((.*?)\)", s) + re.split(r"\s+[-–|/]\s+", re.sub(r"\(.*?\)", "", s))   # "AB180 - 에이비일팔공" (LinkedIn)
-    cos = {norm_company(s)} | {norm_company(p) for p in parts}
+    cos = {norm_company(s)} | {c for c in map(norm_company, parts) if len(c) > 1 and c not in _LEGAL}
     cos.discard("")
+    return cos
+
+
+def _title(t: str) -> str:
+    """비교용 포지션. 기호·공백과 '채용·모집·영입'을 떼고 '개발자'는 '개발'로 ("백엔드 개발(3년)" ↔ "백엔드 개발자(3년)")."""
+    return re.sub(r"[^0-9a-z가-힣]", "", re.sub(r"채용|모집|영입", "", (t or "").lower())).replace("개발자", "개발")
+
+
+def _strip_tag(company: str, title: str, cos: set) -> str:
+    """맨 앞 [회사명] 꼬리표를 뗀 제목."""
     t = title or ""
     m = re.match(r"\s*\[([^\]]+)\]\s*", t)
-    if m and (norm_company(m.group(1)) in cos or _norm_raw(m.group(1)) in _norm_raw(s)):
+    if m and (norm_company(m.group(1)) in cos or _norm_raw(m.group(1)) in _norm_raw(company)):
         t = t[m.end():]
-    t = re.sub(r"[^0-9a-z가-힣]", "", re.sub(r"채용|모집|영입", "", t.lower()))
+    return t
+
+
+def dup_keys(company: str, title: str) -> set:
+    """같은 공고를 다른 사이트에서 만났는지 보는 (회사, 포지션) 키들.
+    회사는 괄호 안·밖 표기를 모두 후보로 (법인 형태 표기는 빼고). 포지션은 _title 로 맞추고 맨 앞 [회사명] 꼬리표만 뗀다
+    — 괄호 안 팀 이름은 남겨 다른 공고가 합쳐지지 않게."""
+    cos = _companies(company)
+    t = _title(_strip_tag(company, title, cos))
     return {(c, t) for c in cos}
+
+
+def near_key(company: str, title: str, url: str) -> tuple:
+    """near_dup 비교용 (회사 후보, 포지션, 사이트). 사이트는 호스트로 본다 (점핏·사람인처럼 등록 도메인이 같아도 다른 사이트)."""
+    cos = _companies(company)
+    return cos, _title(_strip_tag(company, title, cos)), urlsplit(url).netloc.lower().removeprefix("www.")
+
+
+def near_dup(a: tuple, b: tuple) -> float:
+    """dup_keys 로는 다르지만 같은 공고일 수 있는 정도 (0 = 아님). 다른 사이트끼리만 보고, 거르지 않고 표시만 한다.
+    같은 회사면 포지션 유사도 0.9 이상 ("[경력] Backend Engineer (빗썸페이)" ↔ "Backend Engineer (빗썸페이)"),
+    다른 회사면 포지션이 같고 회사 이름 앞 두 글자가 같을 때 (계열사 "토스" ↔ "토스페이먼츠", 바뀐 이름 "나무기술" ↔ "나무에이엑스").
+    기준은 대기함 948줄에서 잰 값: 0.85 로 내리면 같은 회사의 다른 포지션(Staff ↔ Senior Staff)이 크게 는다."""
+    (ca, ta, sa), (cb, tb, sb) = a, b
+    if sa == sb or not ta or not tb:
+        return 0
+    if ca & cb:
+        r = difflib.SequenceMatcher(None, ta, tb).ratio()
+        return r if r >= 0.9 else 0
+    return 1 if ta == tb and any(len(x) > 1 and x[:2] == y[:2] for x in ca for y in cb) else 0
+
+
+def pipeline_rows() -> List[tuple]:
+    """pipeline.md 체크리스트 줄의 (URL, 회사, 포지션)."""
+    rows = []
+    for line in read_text(P["pipeline"]).split("\n"):
+        if line.lstrip().startswith("- ["):
+            c = [x.strip() for x in line.split(" | ")]
+            m = URL_RE.search(c[0])
+            if len(c) > 2:
+                rows.append((m.group(0) if m else "", c[1], c[2]))
+    return rows
 
 
 def pipeline_keys() -> set:
     """pipeline.md 체크리스트 줄의 (회사, 포지션). 다른 사이트에 같은 공고가 올라온 경우를 거른다."""
-    keys = set()
-    for line in read_text(P["pipeline"]).split("\n"):
-        if line.lstrip().startswith("- ["):
-            c = [x.strip() for x in line.split(" | ")]
-            if len(c) > 2:
-                keys |= dup_keys(c[1], c[2])
-    return keys
+    return {k for _, c, t in pipeline_rows() for k in dup_keys(c, t)}
 
 
 def insert_under(md: str, header: str, lines: List[str], before: Optional[str] = None) -> str:

@@ -56,6 +56,7 @@ python3 scripts/scan.py --dry-run                 # no file writes
 python3 scripts/scan.py --only toss,wanted        # filter by provider module name or sources.yaml board/company name
 python3 scripts/scan.py --no-detail | --seed
 python3 scripts/scan.py --add <found.yaml>             # postings found by hand: dedup, filters except title, logging as collected ones
+python3 scripts/scan.py --recheck-dups [--dry-run]   # one-off: drop history rows an older version wrongly marked skipped_dup, so the next scan fetches them
 python3 scripts/alive.py [--write] [--json]
 python3 scripts/weekly.py [--since YYYY-MM-DD]    # scan → alive --write → tracker report → data/search/reports/ (scripts/weekly.sh forwards here)
 

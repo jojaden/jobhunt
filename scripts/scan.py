@@ -7,6 +7,7 @@
   python3 scripts/scan.py --no-detail     본문을 받지 않음 (빠름, 1차 선별 불가)
   python3 scripts/scan.py --seed          지금 열린 공고를 "본 것"으로만 기록 (대기함에 넣지 않음, 다음 실행부터 새 공고만)
   python3 scripts/scan.py --add 찾은공고.yaml   손으로 찾은 공고를 중복 확인·필터(제목 필터 빼고)에 넣고 기록 (채널 수집은 안 함)
+  python3 scripts/scan.py --recheck-dups  예전 버전이 다른 회사 공고를 중복으로 잘못 거른 기록을 지움 (다음 수집에서 다시 받음)
 
 결과
   data/search/pipeline.md   "## 새로 수집 (선별 전)" 섹션에 추가 → AI 에이전트가 brief.md 로 1차 선별
@@ -83,6 +84,24 @@ def _detail(mod, j):
         j.text = f"[본문 받기 실패: {type(e).__name__}: {e}]"
 
 
+def recheck_dups(dry_run: bool) -> int:
+    """v1.3.0 까지는 "(주)" 의 "주" 를 회사 이름으로 봐서, 제목만 같은 다른 (주)회사 공고를 skipped_dup 으로 기록했다 (#56).
+    지금 기준으로 겹치는 공고가 없는 skipped_dup 줄을 scan-history.tsv 에서 지운다. 지운 공고는 다음 수집에서 다시 받는다."""
+    rows = K.read_history()
+    keep = {k for r in rows if r.get("status") != "skipped_dup" for k in K.dup_keys(r["company"], r["title"])}
+    keep |= {k for r in K.read_tracker() for k in K.dup_keys(r["company"], r["role"])} | K.pipeline_keys()
+    drop = {r["url"] for r in rows if r.get("status") == "skipped_dup" and not K.dup_keys(r["company"], r["title"]) & keep}
+    print(f"── 중복으로 잘못 거른 기록 {len(drop)}건{' (dry-run: 파일 안 씀)' if dry_run else ''}")
+    for r in rows:
+        if r["url"] in drop:
+            print(f"   {r['first_seen']} {r['company']} / {r['title']} — {r['url']}")
+    if drop and not dry_run:
+        lines = K.read_text(K.P["history"]).split("\n")
+        K.write_text(K.P["history"], "\n".join(lines[:1] + [l for l in lines[1:] if l.split("\t")[0] not in drop]))
+        print("   scan-history.tsv 에서 지움 → 다음 수집(jobhunt scan)에서 아직 열린 공고를 다시 받습니다")
+    return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="공고 수집")
     ap.add_argument("--only", help="쉼표로 구분한 채널·회사·공급원 이름")
@@ -90,7 +109,10 @@ def main(argv=None):
     ap.add_argument("--no-detail", action="store_true")
     ap.add_argument("--seed", action="store_true")
     ap.add_argument("--add", metavar="YAML", help="손으로 찾은 공고 목록 (형식은 added() 설명)")
+    ap.add_argument("--recheck-dups", action="store_true", help="중복으로 잘못 거른 기록을 지움 (recheck_dups 설명)")
     a = ap.parse_args(argv)
+    if a.recheck_dups:
+        return recheck_dups(a.dry_run)
     if a.seed:
         a.no_detail = True
 
@@ -103,6 +125,7 @@ def main(argv=None):
 
     seen = {r["url"] for r in K.read_history()} | K.pipeline_urls()
     tracked = {k for r in K.read_tracker() for k in K.dup_keys(r["company"], r["role"])} | K.pipeline_keys()
+    near = [(K.near_key(c, t, u), (u, c, t)) for u, c, t in K.pipeline_rows()]   # 거르지 않고 표시만 하는 비교 대상
     cool = K.cooldown_companies(int(targets.get("reapply_days", 183)))
     black = K.blacklist_companies()
 
@@ -152,6 +175,11 @@ def main(argv=None):
                     reasons[status] += 1
                     continue
                 n_new += 1
+                nk = K.near_key(j.company, j.title, j.url)
+                score, other = max(((K.near_dup(nk, k), o) for k, o in near), default=(0, None))
+                if score:
+                    j.extra["near"] = other
+                near.append((nk, (j.url, j.company, j.title)))
                 fresh.append((mod, j))
                 if not a.no_detail:
                     key = K.site(urlsplit(j.url).netloc)
@@ -190,6 +218,8 @@ def main(argv=None):
     for _, j in fresh_ok:
         loc = j.location or "?"
         tag = " [근무지 확인 필요]" if K.location_check(j.location, lf) == "unknown" else ""
+        nd = j.extra.get("near")
+        tag += " [같은 공고일 수 있음]" if nd else ""     # 다른 줄 URL 은 본문에만 (score apply 가 줄 안의 URL 로 줄을 찾음)
         hint = K.stack_hint(j.text) if j.text else "본문 없음"
         raw = ""
         if not a.dry_run and not a.no_detail:
@@ -198,7 +228,9 @@ def main(argv=None):
             with open(os.path.join(K.P["inbox"], fn), "w", encoding="utf-8") as f:
                 f.write(f"# {j.company} — {j.title}\n\n- URL: {j.url}\n- 출처: {j.source}\n- 근무지: {loc}\n"
                         f"- 게시: {j.posted_at or '?'} · 마감: {j.closes_at or '?'}\n- 수집: {K.TODAY} (scripts/scan.py)\n"
-                        f"- 언어 요건 힌트: {hint}\n\n{j.text}\n")
+                        f"- 언어 요건 힌트: {hint}\n"
+                        + (f"- 같은 공고일 수 있음: {nd[0]} ({nd[1]} / {nd[2]})\n" if nd else "")
+                        + f"\n{j.text}\n")
             raw = f" | 본문: data/search/inbox/{fn}"
         lines.append(f"- [ ] {j.url} | {j.company} | {j.title} | {loc}{tag} | 선별 전 | {j.source} · {K.TODAY}"
                      f" · 마감 {j.closes_at or '?'} | 언어: {hint}{raw}")
@@ -225,6 +257,12 @@ def main(argv=None):
                   + (f" · 지난 확인 {last.get('checked')} {last.get('result')}" if last else ""))
     print("  제외: " + (", ".join(f"{k} {v}" for k, v in sorted(reasons.items())) or "없음"))
     print(f"  새로 추가: {len(lines)}건 → {'pipeline.md ' + NEW_HEADER if not a.dry_run else '(dry-run)'}")
+    nears = [j for _, j in fresh_ok if j.extra.get("near")]
+    if nears:
+        print(f"  같은 공고일 수 있음 {len(nears)}건 — 다른 사이트의 비슷한 공고 (거르지 않음, 본문을 비교해 같으면 그 판정을 따름):")
+        for j in nears:
+            u, c, t = j.extra["near"]
+            print(f"   {j.company} / {j.title} ≈ {c} / {t} ({u})")
     for l in lines[:40]:
         print("   " + re.sub(r" \| 본문: .*$", "", l)[6:])
     if len(lines) > 40:
