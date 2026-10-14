@@ -112,32 +112,23 @@ Running the same install command again switches you to the new layout.
 </details>
 
 <details>
-<summary>Manual install (if you want to read the scripts first)</summary>
+<summary>Clone & Install (if you want to read the scripts first)</summary>
+
+Clone the repository, read `install.sh` and `scripts/`, then install from the clone. Where it installs and what `jobhunt setup` does are the same as the one-line install; you need [uv](https://docs.astral.sh/uv/getting-started/installation/) first.
 
 ```bash
-uv tool install --python 3.12 git+https://github.com/jojaden/jobhunt
+git clone https://github.com/jojaden/jobhunt jobhunt-src   # ~/jobhunt is the default data folder, so use another name
+cd jobhunt-src
+uv tool install --python 3.12 .
 jobhunt setup
 ```
 
-</details>
-
-<details>
-<summary>Get the skill as a Claude Code or Codex plugin</summary>
-
-Instead of a link, the skill can come as an agent plugin. Pick "plugin" as an agent's connection on the install screen and the commands below are run for you.
+Your personal data goes in the folder you pick in `jobhunt setup` (default `~/jobhunt/data`), not in the clone. To update, in the clone:
 
 ```bash
-# Claude Code (2.1.275 or later; in a chat: /plugin install jobhunt --marketplace jojaden/jobhunt)
-claude plugin install jobhunt --marketplace jojaden/jobhunt
-
-# Codex
-codex plugin marketplace add jojaden/jobhunt
-codex plugin add jobhunt@jobhunt
+git pull
+uv tool install --force --reinstall-package jobhunt --python 3.12 .
 ```
-
-- **The plugin only points the way.** The instructions (`SKILL.md`, `modes/`, `references/`) and the scripts come with the `jobhunt` command, so the one-line install above is still needed; if it is missing, the plugin asks for it on first use. That keeps instructions and scripts on the same version, and updating with the installer updates the instructions too, without fetching the plugin again.
-- **So the skill doesn't show up twice,** `jobhunt setup` makes no link for an agent that has the plugin. If you ran the installer first, run `jobhunt setup --skill-only` once after installing the plugin to remove the link.
-- Slash commands carry the plugin name: `/jobhunt:jobhunt scan`.
 
 </details>
 
@@ -176,6 +167,26 @@ Without a terminal (automated installs, CI) or with one of the options below it 
 | `SKILLS_DIR=path[:path…]` | Choose the skill folders yourself (other agents, several places) |
 
 A different skill with the same name is never overwritten; you are told about it. A link to an older jobhunt is moved to the new location.
+
+<details>
+<summary>Connection: a Claude Code or Codex plugin instead of a skill link</summary>
+
+The plugin is not a way to install jobhunt but another way to do "Connects your AI agents" above. Pick "plugin" as an agent's connection on the install screen and the commands below are run for you, or run them yourself.
+
+```bash
+# Claude Code (2.1.275 or later; in a chat: /plugin install jobhunt --marketplace jojaden/jobhunt)
+claude plugin install jobhunt --marketplace jojaden/jobhunt
+
+# Codex
+codex plugin marketplace add jojaden/jobhunt
+codex plugin add jobhunt@jobhunt
+```
+
+- **The plugin only points the way.** The instructions (`SKILL.md`, `modes/`, `references/`) and the scripts come with the `jobhunt` command, so the one-line install above is still needed; if it is missing, the plugin asks for it on first use. That keeps instructions and scripts on the same version, and updating with the installer updates the instructions too, without fetching the plugin again.
+- **So the skill doesn't show up twice,** `jobhunt setup` makes no link for an agent that has the plugin. If you ran the installer first, run `jobhunt setup --skill-only` once after installing the plugin to remove the link.
+- Slash commands carry the plugin name: `/jobhunt:jobhunt scan`.
+
+</details>
 
 > **Why keep the tool and your records apart?**
 >

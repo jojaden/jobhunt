@@ -110,32 +110,23 @@ git·curl이 없으면 Ubuntu는 apt로 설치하고, macOS는 `xcode-select --i
 </details>
 
 <details>
-<summary>직접 설치 (스크립트를 먼저 읽어 보고 싶을 때)</summary>
+<summary>Clone & Install (스크립트를 먼저 읽어 보고 설치할 때)</summary>
+
+저장소를 받아 `install.sh`·`scripts/`를 읽어 본 뒤, 받은 폴더에서 설치합니다. 설치되는 곳과 `jobhunt setup`이 하는 일은 한 줄 설치와 같고, [uv](https://docs.astral.sh/uv/getting-started/installation/)가 먼저 있어야 합니다.
 
 ```bash
-uv tool install --python 3.12 git+https://github.com/jojaden/jobhunt
+git clone https://github.com/jojaden/jobhunt jobhunt-src   # ~/jobhunt 는 개인 자료 폴더 기본값이라 다른 이름으로
+cd jobhunt-src
+uv tool install --python 3.12 .
 jobhunt setup
 ```
 
-</details>
-
-<details>
-<summary>Claude Code·Codex 플러그인으로 스킬 받기</summary>
-
-스킬을 링크 대신 에이전트의 플러그인으로 받을 수도 있습니다. 설치 화면에서 에이전트의 연결 방식을 "플러그인"으로 고르면 아래 명령을 대신 실행합니다.
+개인 자료는 받은 폴더가 아니라 `jobhunt setup`에서 고른 폴더(기본 `~/jobhunt/data`)에 쌓입니다. 갱신할 때는 받은 폴더에서:
 
 ```bash
-# Claude Code (2.1.275 이상. 대화창에서는 /plugin install jobhunt --marketplace jojaden/jobhunt)
-claude plugin install jobhunt --marketplace jojaden/jobhunt
-
-# Codex
-codex plugin marketplace add jojaden/jobhunt
-codex plugin add jobhunt@jobhunt
+git pull
+uv tool install --force --reinstall-package jobhunt --python 3.12 .
 ```
-
-- **플러그인은 안내만 담습니다.** 지침(`SKILL.md`·`modes/`·`references/`)과 스크립트는 `jobhunt` 명령에 들어 있어서 위 한 줄 설치도 필요합니다. 없으면 플러그인이 처음 실행될 때 설치를 안내합니다. 그래서 지침과 스크립트 버전이 어긋나지 않고, 설치 명령으로 갱신하면 플러그인을 다시 받지 않아도 지침까지 새 버전이 됩니다.
-- **스킬이 두 번 보이지 않게** 플러그인이 있는 에이전트에는 `jobhunt setup`이 링크를 만들지 않습니다. 설치 명령을 먼저 실행했다면 플러그인을 설치한 뒤 `jobhunt setup --skill-only`를 한 번 실행해 링크를 정리하세요.
-- 슬래시 명령에는 플러그인 이름이 붙습니다: `/jobhunt:jobhunt scan`.
 
 </details>
 
@@ -174,6 +165,26 @@ codex plugin add jobhunt@jobhunt
 | `SKILLS_DIR=경로[:경로…]` | 스킬 폴더를 직접 지정할 때 (다른 에이전트, 여러 곳) |
 
 같은 이름의 다른 스킬이 이미 있으면 덮어쓰지 않고 알려 줍니다. 예전 jobhunt를 가리키던 링크는 새 위치로 바꿉니다.
+
+<details>
+<summary>연결 방식: 스킬 링크 대신 Claude Code·Codex 플러그인</summary>
+
+플러그인은 설치 방법이 아니라 위 "AI 에이전트 연결"을 하는 다른 방식입니다. 설치 화면에서 에이전트의 연결 방식을 "플러그인"으로 고르면 아래 명령을 대신 실행하고, 직접 실행해도 됩니다.
+
+```bash
+# Claude Code (2.1.275 이상. 대화창에서는 /plugin install jobhunt --marketplace jojaden/jobhunt)
+claude plugin install jobhunt --marketplace jojaden/jobhunt
+
+# Codex
+codex plugin marketplace add jojaden/jobhunt
+codex plugin add jobhunt@jobhunt
+```
+
+- **플러그인은 안내만 담습니다.** 지침(`SKILL.md`·`modes/`·`references/`)과 스크립트는 `jobhunt` 명령에 들어 있어서 위 한 줄 설치도 필요합니다. 없으면 플러그인이 처음 실행될 때 설치를 안내합니다. 그래서 지침과 스크립트 버전이 어긋나지 않고, 설치 명령으로 갱신하면 플러그인을 다시 받지 않아도 지침까지 새 버전이 됩니다.
+- **스킬이 두 번 보이지 않게** 플러그인이 있는 에이전트에는 `jobhunt setup`이 링크를 만들지 않습니다. 설치 명령을 먼저 실행했다면 플러그인을 설치한 뒤 `jobhunt setup --skill-only`를 한 번 실행해 링크를 정리하세요.
+- 슬래시 명령에는 플러그인 이름이 붙습니다: `/jobhunt:jobhunt scan`.
+
+</details>
 
 > **왜 도구와 내 기록을 나눠 두나요?**
 >
