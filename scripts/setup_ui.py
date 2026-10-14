@@ -14,6 +14,7 @@ import select
 import shutil
 import subprocess
 import sys
+import unicodedata
 
 MARKET = "jojaden/jobhunt"
 # (이름, 홈 아래 폴더, 명령, 플러그인 설치 명령들) — 폴더가 있으면 그 에이전트가 깔린 것으로 본다 (setup.sh 와 같은 기준)
@@ -77,13 +78,29 @@ def problem(path: str) -> str:
     """개인 자료 폴더로 쓸 수 없는 이유 (쓸 수 있으면 빈 문자열)."""
     if os.path.exists(path) and not os.path.isdir(path):
         return "같은 이름의 파일이 있습니다"
-    if os.path.isdir(path) and os.listdir(path) and not os.path.isdir(os.path.join(path, "data")):
-        return "다른 파일이 있는 폴더입니다. 다른 위치를 고르세요"
+    try:
+        if os.path.isdir(path) and os.listdir(path) and not os.path.isdir(os.path.join(path, "data")):
+            return "다른 파일이 있는 폴더입니다. 다른 위치를 고르세요"
+    except OSError:
+        return "읽을 수 없는 폴더입니다. 다른 위치를 고르세요"
     if path.startswith("/mnt/") and os.path.exists("/proc/version"):
         with open("/proc/version", encoding="utf-8", errors="ignore") as f:
             if "microsoft" in f.read().lower():
                 return "Windows 드라이브(/mnt/...)는 느리고 스킬 링크가 깨질 수 있습니다. WSL 홈(~) 아래를 고르세요"
     return ""
+
+
+def fit(line: str, cols: int) -> str:
+    """색 코드는 두고 보이는 글자만 cols-1 칸까지 (한글은 두 칸). 줄이 접히면 다시 그릴 때 지울 줄 수가 어긋난다."""
+    out, width = [], 0
+    for tok in re.findall(r"\x1b\[[0-9;?]*[A-Za-z]|.", line):
+        if not tok.startswith("\x1b"):
+            width += 2 if unicodedata.east_asian_width(tok) in "WF" else 1
+            if width >= cols:
+                out.append("…\x1b[0m")
+                break
+        out.append(tok)
+    return "".join(out)
 
 
 def save_home(path: str, root: str) -> None:
@@ -117,7 +134,9 @@ class Term:
         return cls(fd, saved)
 
     def close(self) -> None:
+        """입력 방식을 되돌리고 커서를 다시 보이게 한다 (중간에 오류가 나도)."""
         import termios
+        self.write(SHOW)
         termios.tcsetattr(self.fd, termios.TCSADRAIN, self.saved)
         os.close(self.fd)
 
@@ -126,9 +145,12 @@ class Term:
 
     def read_key(self) -> bytes:
         b = os.read(self.fd, 1)
-        if b == b"\x1b":                         # 화살표는 ESC [ A 세 바이트
-            while len(b) < 3 and select.select([self.fd], [], [], 0.05)[0]:
+        if b == b"\x1b":                         # ESC [ … 끝 바이트(@~~): 화살표 ESC [ A, Ctrl-↑ ESC [ 1 ; 5 A, Delete ESC [ 3 ~
+            while select.select([self.fd], [], [], 0.05)[0]:
                 b += os.read(self.fd, 1)
+                if len(b) == 3 and b[1:2] == b"O" or len(b) > 2 and b[1:2] == b"[" and 0x40 <= b[-1] <= 0x7E \
+                        or b[1:2] not in (b"[", b"O"):
+                    break
         elif b and b[0] >= 0xC0:                 # 한글 등 UTF-8 여러 바이트 글자
             b += os.read(self.fd, 1 if b[0] < 0xE0 else 2 if b[0] < 0xF0 else 3)
         return b
@@ -144,6 +166,11 @@ class Term:
         return k
 
     def frame(self, lines: list[str], final: bool = False) -> None:
+        try:
+            cols = os.get_terminal_size(self.fd).columns
+        except OSError:
+            cols = 80
+        lines = [fit(s, cols) for s in lines]
         clear = f"\x1b[{self.lines}F\x1b[J" if self.lines else ""
         self.write(clear + ("" if final else HIDE) + "".join(f"{s}\n" for s in lines) + (SHOW if final else ""))
         self.lines = 0 if final else len(lines)
@@ -254,22 +281,23 @@ def ask(t: Term, home: str, env: dict, root: str, ask_root: bool, cwd: str) -> t
                    hints=["Chromium · 한글 폰트 · poppler, 수백 MB", "jobhunt setup --no-skill"])
     if pdf == [1]:
         args.append("--skill-only")
-    t.write(f"{paint('2', '└')}  설치를 시작합니다\n\n")
+    start = "개인 자료 폴더만 준비합니다 (나중에 jobhunt setup)" if "--no-skill" in args and "--skill-only" in args else "설치를 시작합니다"
+    t.write(f"{paint('2', '└')}  {start}\n\n")
     return root, args, plugins
 
 
-def run(root: str, args: list[str], env: dict, ask_root: bool) -> tuple[str, list[str]]:
-    """터미널이고 인자가 없으면 물어서 (개인 자료 폴더, setup.sh 인자)를 돌려준다. --yes 는 묻지 않고 전부."""
+def run(root: str, args: list[str], env: dict, ask_root: bool) -> tuple[str, list[str], bool]:
+    """터미널이고 인자가 없으면 물어서 (개인 자료 폴더, setup.sh 인자, 폴더를 화면에서 골랐나)를 돌려준다. --yes 는 묻지 않고 전부."""
     if "--yes" in args or "-y" in args:
-        return root, [a for a in args if a not in ("--yes", "-y")]
+        return root, [a for a in args if a not in ("--yes", "-y")], False
     t = None if args else Term.open()
     if t is None:
-        return root, args
+        return root, args, False
     home = os.path.expanduser("~")
     try:
         root, args, plugins = ask(t, home, env, root, ask_root, os.getcwd())
     except KeyboardInterrupt:
-        t.write(f"{SHOW}\n")
+        t.write("\n")
         print("설정을 취소했습니다. 다시 하려면: jobhunt setup", file=sys.stderr)
         raise SystemExit(130)
     finally:
@@ -280,4 +308,4 @@ def run(root: str, args: list[str], env: dict, ask_root: bool) -> tuple[str, lis
             subprocess.call(c)
         if not plugin_installed(home, folder):
             print(f"  {name} 플러그인을 설치하지 못해 스킬 링크로 연결합니다", flush=True)
-    return root, args
+    return root, args, ask_root

@@ -93,7 +93,7 @@ If git or curl is missing, Ubuntu installs it with apt and macOS points you to `
 
 | Setting | Meaning |
 |---|---|
-| `JOBHUNT_HOME=path` | Set your data folder without being asked (by default you pick it on screen at the first install) |
+| `JOBHUNT_HOME=path` | Set your data folder without being asked (it is remembered, so nothing goes in your shell config; by default you pick it on screen at the first install) |
 | `JOBHUNT_REF=v1.2.0` | Pin a version (tag) or branch |
 | `JOBHUNT_REPO=url` | Install from a fork |
 | `… \| bash -s -- --no-skill` | Trailing arguments go to `jobhunt setup` (options below) |

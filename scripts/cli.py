@@ -119,10 +119,11 @@ def main(argv=None) -> int:
             import setup_ui
             installed = K.RES == HERE
             # 터미널이면 고르는 화면. 개인 자료 폴더는 설치본에서, 아직 자료가 없고 JOBHUNT_HOME 으로 정하지 않았을 때만 묻는다
-            root, rest = setup_ui.run(K.ROOT, rest, env, installed and not os.environ.get("JOBHUNT_HOME") and not os.path.isdir(K.DATA))
+            root, rest, picked = setup_ui.run(K.ROOT, rest, env, installed and not os.environ.get("JOBHUNT_HOME") and not os.path.isdir(K.DATA))
             if installed:                        # 설치본: 패키지 폴더를 스킬로 연결하고, 파이썬 패키지는 uv 가 이미 깔았다
-                setup_ui.save_home(K.HOME_FILE, root)
                 prepare_home(K.RES, root)
+                if picked:                       # 화면에서 고른 폴더만 기억한다 (한 번만 준 JOBHUNT_HOME 은 기억을 바꾸지 않음)
+                    setup_ui.save_home(K.HOME_FILE, root)
                 env.update(JOBHUNT_HOME=root, JOBHUNT_PY=sys.executable, JOBHUNT_SKILL_SRC=HERE)
         return subprocess.call(["bash", path, *rest], env=env)
     sys.argv = [f"jobhunt {cmd}", *rest]

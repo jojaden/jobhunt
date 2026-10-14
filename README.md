@@ -91,7 +91,7 @@ git·curl이 없으면 Ubuntu는 apt로 설치하고, macOS는 `xcode-select --i
 
 | 설정 | 설명 |
 |---|---|
-| `JOBHUNT_HOME=경로` | 개인 자료 폴더를 묻지 않고 정할 때 (기본은 처음 설치 때 화면에서 고름) |
+| `JOBHUNT_HOME=경로` | 개인 자료 폴더를 묻지 않고 정할 때 (기억해 두므로 셸 설정은 필요 없음. 기본은 처음 설치 때 화면에서 고름) |
 | `JOBHUNT_REF=v1.2.0` | 버전(태그)이나 브랜치 고정 |
 | `JOBHUNT_REPO=주소` | fork한 저장소에서 받을 때 |
 | `… \| bash -s -- --no-skill` | 뒤 인자는 `jobhunt setup`으로 넘어갑니다 (아래 옵션) |

@@ -6,7 +6,7 @@
 #
 # 환경 변수
 #   JOBHUNT_HOME  개인 자료 폴더 (예전 이름 JOBHUNT_DIR 도 받음). 주지 않으면 처음 설치 때 jobhunt setup 이 묻고(기본 ~/jobhunt),
-#                 기본이 아닌 위치는 ~/.config/jobhunt/home 에 기억한다
+#                 기본이 아닌 위치는 ~/.config/jobhunt/home 에 기억한다 (여기에 준 폴더도)
 #   JOBHUNT_REF   받을 태그·브랜치·커밋 (예: v1.2.0, 기본은 기본 브랜치)
 #   JOBHUNT_REPO  저장소 주소 (fork 를 쓸 때)
 #
@@ -148,6 +148,10 @@ main() {
   if [ -n "$FIXED_HOME" ] || [ -d "$HOME_DIR/.old-repo" ]; then export JOBHUNT_HOME="$HOME_DIR"; fi
   say "설정: jobhunt setup $*"
   jobhunt setup "$@"
+  if [ -n "$FIXED_HOME" ]; then   # 설치 명령에 준 폴더는 기억한다 (다음 실행 · cron 이 export 없이 찾게)
+    conf="${XDG_CONFIG_HOME:-$HOME/.config}/jobhunt/home"
+    if [ "$HOME_DIR" = "$HOME/jobhunt" ]; then rm -f "$conf"; else mkdir -p "$(dirname "$conf")" && printf '%s\n' "$HOME_DIR" > "$conf"; fi
+  fi
   chosen="$(jobhunt where | sed -n 's|^개인 자료: \(.*\)/data  .*|\1|p')"   # 화면에서 고른 폴더
   HOME_DIR="${chosen:-$HOME_DIR}"
   uv tool update-shell -q 2>/dev/null || true   # 새 터미널에서도 jobhunt 가 보이게 PATH 를 셸 설정에 넣는다 (이미 있으면 그대로)

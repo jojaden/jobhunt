@@ -62,6 +62,21 @@ class Paths(unittest.TestCase):
         self.assertIn("다른 파일", setup_ui.problem(os.path.join(self.base, "busy", "jobhunt")))
         self.assertIn("파일", setup_ui.problem(os.path.join(self.base, "dev.txt")))
 
+    @unittest.skipIf(os.geteuid() == 0, "root 는 권한과 상관없이 읽는다")
+    def test_unreadable(self):
+        locked = os.path.join(self.base, "locked", "jobhunt")
+        os.makedirs(locked)
+        os.chmod(locked, 0o311)
+        try:
+            self.assertIn("읽을 수 없는", setup_ui.problem(locked))
+        finally:
+            os.chmod(locked, 0o755)
+
+    def test_fit(self):
+        """줄이 접히지 않게 보이는 칸만 센다 (한글 두 칸, 색 코드는 0칸)."""
+        self.assertEqual(setup_ui.fit("\x1b[2mabc\x1b[0m", 80), "\x1b[2mabc\x1b[0m")
+        self.assertEqual(setup_ui.fit("가나다라", 6), "가나…\x1b[0m")
+
     def test_folder_tab_and_retry(self):
         """Tab 은 고른 후보로 채우고, 쓸 수 없는 폴더는 그 자리에서 다시 묻는다. 한글도 입력된다."""
         t = Fake(typed("한") + [BACK] + typed("de") + [DOWN, TAB, ENTER])
@@ -69,6 +84,19 @@ class Paths(unittest.TestCase):
         t = Fake(typed("busy") + [ENTER, CLEAR] + typed("develop") + [ENTER])
         self.assertEqual(t.folder("어디", self.base), os.path.join(self.base, "develop", "jobhunt"))
         self.assertTrue(any("다른 파일" in s for s in t.out))
+
+
+class Keys(unittest.TestCase):
+    def test_escape_sequences(self):
+        """화살표·Ctrl-↑·Delete 는 끝 바이트까지 한 키로 읽어, 꼬리가 경로에 섞이지 않는다."""
+        r, w = os.pipe()
+        t = setup_ui.Term(r)
+        try:
+            os.write(w, b"\x1b[1;5A" + b"\x1b[3~" + b"\x1bOB" + b"\x1b[A" + "한".encode() + b"a")
+            self.assertEqual([t.key(setup_ui.EDIT) for _ in range(6)], ["", "", "down", "up", "한", "a"])
+        finally:
+            os.close(r)
+            os.close(w)
 
 
 class Ask(unittest.TestCase):
@@ -108,11 +136,12 @@ class Ask(unittest.TestCase):
 
     def test_run_without_prompt(self):
         """--yes 나 다른 인자를 주거나 터미널이 없으면 묻지 않는다."""
-        self.assertEqual(setup_ui.run("/r", ["--yes", "--no-skill"], {}, True), ("/r", ["--no-skill"]))
+        """폴더를 묻지 않았으면 골랐다고 하지 않는다 (한 번만 준 JOBHUNT_HOME 이 기억된 폴더를 바꾸지 않게)."""
+        self.assertEqual(setup_ui.run("/r", ["--yes", "--no-skill"], {}, True), ("/r", ["--no-skill"], False))
         with mock.patch.object(setup_ui.Term, "open", side_effect=AssertionError("묻지 않아야 함")):
-            self.assertEqual(setup_ui.run("/r", ["--skill-only"], {}, True), ("/r", ["--skill-only"]))
+            self.assertEqual(setup_ui.run("/r", ["--skill-only"], {}, True), ("/r", ["--skill-only"], False))
         with mock.patch.object(setup_ui.Term, "open", return_value=None):
-            self.assertEqual(setup_ui.run("/r", [], {}, True), ("/r", []))
+            self.assertEqual(setup_ui.run("/r", [], {}, True), ("/r", [], False))
 
 
 class Home(unittest.TestCase):
