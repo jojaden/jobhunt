@@ -169,8 +169,9 @@ class Term:
         try:
             cols = os.get_terminal_size(self.fd).columns
         except OSError:
-            cols = 80
-        lines = [fit(s, cols) for s in lines]
+            cols = 0
+        if cols > 0:                             # 폭을 모르는 터미널(0)은 자르지 않는다
+            lines = [fit(s, cols) for s in lines]
         clear = f"\x1b[{self.lines}F\x1b[J" if self.lines else ""
         self.write(clear + ("" if final else HIDE) + "".join(f"{s}\n" for s in lines) + (SHOW if final else ""))
         self.lines = 0 if final else len(lines)
