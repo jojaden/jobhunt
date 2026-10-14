@@ -67,6 +67,26 @@ class Companies(unittest.TestCase):
         self.assertTrue(a & b)
         self.assertFalse(K.dup_keys("가나다랩", "백엔드 개발자 (결제팀)") & K.dup_keys("가나다랩", "백엔드 개발자 (검색팀)"))
         self.assertIn(("gn300", "데이터엔지니어"), K.dup_keys("GN300 - 지엔삼백", "데이터 엔지니어"))   # LinkedIn 의 "영문 - 한글" 표기
+        # "(주)" 는 회사 이름이 아니다: 제목만 같은 다른 회사 공고를 합치지 않는다 (#56)
+        self.assertFalse(K.dup_keys("(주)가나소프트", "백엔드 개발자 채용") & K.dup_keys("다라테크(주)", "백엔드 개발자 채용"))
+        self.assertFalse(K.dup_keys("가나소프트(유)", "백엔드 개발자") & K.dup_keys("(유)다라테크", "백엔드 개발자"))
+        self.assertTrue(K.dup_keys("(주)가나소프트", "백엔드 개발(3년 이상)") & K.dup_keys("가나소프트", "백엔드 개발자(3년 이상)"))
+
+    def test_near_dup(self):
+        near = lambda a, b: K.near_dup(K.near_key(*a), K.near_key(*b))  # noqa: E731
+        # 같은 회사, 다른 사이트, 꼬리표만 다른 제목 → 같은 공고일 수 있음
+        self.assertTrue(near(("가나다랩", "[경력] Backend Engineer (결제)", "https://a.example/1"),
+                             ("Ganada Lab", "Backend Engineer (결제)", "https://www.b.example/2")))
+        # 같은 사이트면 따로 올린 공고로 본다. 같은 회사의 다른 직급도 아니다
+        self.assertFalse(near(("가나다랩", "[경력] Backend Engineer (결제)", "https://a.example/1"),
+                              ("가나다랩", "Backend Engineer (결제)", "https://a.example/2")))
+        self.assertFalse(near(("가나다랩", "Staff Backend Engineer", "https://a.example/1"),
+                              ("가나다랩", "Senior Staff Backend Engineer (Search)", "https://b.example/2")))
+        # 다른 회사: 제목이 같고 이름 앞 두 글자가 같으면 (계열사·바뀐 이름) 표시, 아니면 아님
+        self.assertTrue(near(("Ganada Lab", "Server Developer (3년 이상)", "https://a.example/1"),
+                             ("가나다랩페이", "Server Developer (3년 이상)", "https://b.example/2")))
+        self.assertFalse(near(("(주)가나소프트", "백엔드 개발자", "https://a.example/1"),
+                              ("(주)다라테크", "백엔드 개발자", "https://b.example/2")))
 
     def test_company_in(self):
         self.assertEqual(K.company_in("가나다랩 증권", ["가나다랩"]), "가나다랩")
@@ -118,7 +138,7 @@ class Files(unittest.TestCase):
 
     def test_pipeline_keys_and_urls(self):
         _write("pipeline", "## 대기\n\n- [ ] https://a.example/1 | Ganada Lab | 백엔드 개발자 채용 | 4.5\n메모 https://b.example/x)\n")
-        self.assertIn(("가나다랩", "백엔드개발자"), K.pipeline_keys())
+        self.assertIn(("가나다랩", "백엔드개발"), K.pipeline_keys())
         self.assertEqual(K.pipeline_urls(), {"https://a.example/1", "https://b.example/x"})
 
     def test_history_roundtrip(self):
