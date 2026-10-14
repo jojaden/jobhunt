@@ -100,41 +100,44 @@ def save_home(path: str, root: str) -> None:
 class Term:
     """/dev/tty 로 그리고 읽는다. 앞서 그린 줄 수를 기억했다가 지우고 다시 그린다."""
 
-    def __init__(self, fd: int):
-        self.fd, self.lines = fd, 0
+    def __init__(self, fd: int, saved=None):
+        self.fd, self.lines, self.saved = fd, 0, saved
 
     @classmethod
     def open(cls) -> Term | None:
+        """묻는 동안 내내 글자 단위 입력(cbreak, 화면에 찍지 않음)으로 둔다. 키를 읽을 때만 바꾸면 그 사이에 친 글자가 버려진다."""
+        import termios
+        import tty
         try:
-            return cls(os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY))
+            fd = os.open("/dev/tty", os.O_RDWR | os.O_NOCTTY)
         except OSError:                          # 터미널 없음 (CI · cron)
             return None
+        saved = termios.tcgetattr(fd)
+        tty.setcbreak(fd)
+        return cls(fd, saved)
 
     def close(self) -> None:
+        import termios
+        termios.tcsetattr(self.fd, termios.TCSADRAIN, self.saved)
         os.close(self.fd)
 
     def write(self, s: str) -> None:
         os.write(self.fd, s.encode())
 
     def read_key(self) -> bytes:
-        import termios
-        import tty
-        old = termios.tcgetattr(self.fd)
-        try:
-            tty.setraw(self.fd)
-            b = os.read(self.fd, 1)
-            if b == b"\x1b":                     # 화살표는 ESC [ A 세 바이트
-                while len(b) < 3 and select.select([self.fd], [], [], 0.05)[0]:
-                    b += os.read(self.fd, 1)
-            elif b[0] >= 0xC0:                   # 한글 등 UTF-8 여러 바이트 글자
-                b += os.read(self.fd, 1 if b[0] < 0xE0 else 2 if b[0] < 0xF0 else 3)
-        finally:
-            termios.tcsetattr(self.fd, termios.TCSADRAIN, old)
+        b = os.read(self.fd, 1)
+        if b == b"\x1b":                         # 화살표는 ESC [ A 세 바이트
+            while len(b) < 3 and select.select([self.fd], [], [], 0.05)[0]:
+                b += os.read(self.fd, 1)
+        elif b and b[0] >= 0xC0:                 # 한글 등 UTF-8 여러 바이트 글자
+            b += os.read(self.fd, 1 if b[0] < 0xE0 else 2 if b[0] < 0xF0 else 3)
         return b
 
     def key(self, table: dict) -> str:
         """표에 있는 키는 이름으로, 아니면 입력한 글자 그대로 (제어 문자는 빈 문자열)."""
         b = self.read_key()
+        if not b:                                # 터미널이 닫힘
+            raise KeyboardInterrupt
         k = table.get(b) or ("" if b[:1] < b" " or b.startswith(b"\x1b") else b.decode(errors="ignore"))
         if k == "ctrl-c":
             raise KeyboardInterrupt
