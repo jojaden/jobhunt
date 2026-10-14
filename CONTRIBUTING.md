@@ -19,7 +19,7 @@ Python 3.10 이상, macOS · Debian/Ubuntu · Windows WSL2.
 python3 -m unittest discover -s tests   # 네트워크 없이, data/ 를 건드리지 않음
 ruff check .
 python3 scripts/<고친 스크립트>.py ...     # 실제로 한 번 돌려 본다 (scan.py 는 --dry-run)
-uv tool install --force --python 3.12 .   # 선택: 설치본으로 확인 (jobhunt …, 개인 자료는 JOBHUNT_HOME 또는 ~/jobhunt)
+uv tool install --force --python 3.12 .   # 선택: 설치본으로 확인 (jobhunt …, 개인 자료는 JOBHUNT_HOME, 설치 때 고른 폴더, ~/jobhunt 순)
 ```
 
 PR을 올리면 CI가 같은 테스트(Ubuntu·macOS × Python 3.10·3.12), ruff, 개인 자료 검사, Ubuntu 설치·예시 이력서 빌드, uv 로 설치한 `jobhunt` 명령 검사를 돌립니다.

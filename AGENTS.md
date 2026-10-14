@@ -49,7 +49,7 @@ python3 scripts/check.py <resume.yaml> [pdf] [--offline]      # page count, orph
 python3 scripts/check_links.py <url>... | --pdf <pdf>
 
 # the same scripts as one command (installed with uv tool, or `python3 scripts/cli.py` in the repo)
-jobhunt --help;  jobhunt where    # where it reads personal data: JOBHUNT_HOME > the repo root when run from a checkout > ~/jobhunt
+jobhunt --help;  jobhunt where    # where it reads personal data: JOBHUNT_HOME > the repo root when run from a checkout > the folder picked at install (~/.config/jobhunt/home) > ~/jobhunt
 
 # posting collection
 python3 scripts/scan.py --dry-run                 # no file writes

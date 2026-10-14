@@ -87,13 +87,13 @@ curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | b
 What this one line does:
 1. Installs [uv](https://docs.astral.sh/uv/), the Python tool manager, if it is missing.
 2. Installs the `jobhunt` command (`uv tool install`). The tool lives in its own folder managed by uv.
-3. Runs `jobhunt setup`: creates your data folder (`~/jobhunt/data`), links the skill into your AI agents, and sets up the resume build environment (Chromium, Korean fonts, poppler).
+3. Runs `jobhunt setup`: creates your data folder (default `~/jobhunt/data`), links the skill into your AI agents, and sets up the resume build environment (Chromium, Korean fonts, poppler). Run from a terminal, it lets you pick what to do on screen (below).
 
 If git or curl is missing, Ubuntu installs it with apt and macOS points you to `xcode-select --install`.
 
 | Setting | Meaning |
 |---|---|
-| `JOBHUNT_HOME=path` | Your data folder (default `~/jobhunt`). If you change it, also put `export JOBHUNT_HOME=path` in your shell config |
+| `JOBHUNT_HOME=path` | Set your data folder without being asked (it is remembered, so nothing goes in your shell config; by default you pick it on screen at the first install) |
 | `JOBHUNT_REF=v1.2.0` | Pin a version (tag) or branch |
 | `JOBHUNT_REPO=url` | Install from a fork |
 | `… \| bash -s -- --no-skill` | Trailing arguments go to `jobhunt setup` (options below) |
@@ -124,7 +124,7 @@ jobhunt setup
 <details>
 <summary>Get the skill as a Claude Code or Codex plugin</summary>
 
-Instead of a link, the skill can come as an agent plugin.
+Instead of a link, the skill can come as an agent plugin. Pick "plugin" as an agent's connection on the install screen and the commands below are run for you.
 
 ```bash
 # Claude Code (2.1.275 or later; in a chat: /plugin install jobhunt --marketplace jojaden/jobhunt)
@@ -161,13 +161,16 @@ Good to know:
 
 </details>
 
-What `jobhunt setup` does:
-- **Prepares your data folder:** creates the folder structure and example files in `~/jobhunt/data` (existing files are left alone), and adds `AGENTS.md` and `CLAUDE.md` so agents that don't load skills still find the installed instructions.
-- **Links the AI agent skill:** finds installed agents and links the installed skill into their skill folders (Claude Code `~/.claude/skills`, Codex `~/.codex/skills`). After an update the skill is the new version right away. Agents that have the jobhunt plugin are skipped.
-- **Build environment:** Playwright Chromium, fonts (Pretendard, Noto CJK KR), poppler.
+What `jobhunt setup` does (run from a terminal, you choose with the arrow keys, space and enter):
+- **Prepares your data folder:** on the first install it asks where. As you type a path, the folders under it show up as suggestions and Tab fills one in (e.g. `../develop` → `…/develop/jobhunt`; enter alone means `~/jobhunt`). A non-default location is remembered in `~/.config/jobhunt/home`, so there is nothing to add to your shell config. It creates the folder structure and example files in that folder's `data/` (existing files are left alone), and adds `AGENTS.md` and `CLAUDE.md` so agents that don't load skills still find the installed instructions.
+- **Connects your AI agents:** to the installed agents (Claude Code, Codex) and any other skill folders you pick. For each agent you choose a skill link (`~/.claude/skills/jobhunt` and so on; after an update the skill is the new version right away) or the plugin (below, installed for you with the `claude` or `codex` command). Running it again starts from what is connected now.
+- **Build environment:** Playwright Chromium, fonts (Pretendard, Noto CJK KR), poppler. Only needed to build resume PDFs, so "later" is fine.
+
+Without a terminal (automated installs, CI) or with one of the options below it asks nothing. Without options and without asking, it links every agent it finds and installs the build environment.
 
 | Option | Meaning |
 |---|---|
+| `--yes` | Ask nothing, do everything |
 | `--skill-only` | Link the skill only |
 | `--no-skill` | Build environment only, no skill link |
 | `SKILLS_DIR=path[:path…]` | Choose the skill folders yourself (other agents, several places) |
