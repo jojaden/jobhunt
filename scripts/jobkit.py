@@ -23,8 +23,20 @@ import yaml
 _HERE = os.path.dirname(os.path.abspath(__file__))
 # 함께 배포되는 파일(references/ · modes/ · examples/)이 있는 곳: 저장소에서 돌면 저장소 루트, 설치본(uv tool)이면 패키지 폴더
 RES = _HERE if os.path.isdir(os.path.join(_HERE, "references")) else os.path.dirname(_HERE)
-# 개인 자료(data/)의 부모 폴더: JOBHUNT_HOME > 저장소에서 돌면 저장소 루트 > ~/jobhunt
-ROOT = os.path.abspath(os.path.expanduser(os.environ.get("JOBHUNT_HOME") or (RES if RES != _HERE else "~/jobhunt")))
+# 설치 때 기본이 아닌 개인 자료 폴더를 고르면 jobhunt setup 이 여기에 적는다 (cron 처럼 JOBHUNT_HOME 이 없는 실행도 찾게)
+HOME_FILE = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "jobhunt", "home")
+
+
+def _saved_home() -> str:
+    try:
+        with open(HOME_FILE, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+# 개인 자료(data/)의 부모 폴더: JOBHUNT_HOME > 저장소에서 돌면 저장소 루트 > 설치 때 고른 폴더 > ~/jobhunt
+ROOT = os.path.abspath(os.path.expanduser(os.environ.get("JOBHUNT_HOME") or (RES if RES != _HERE else _saved_home() or "~/jobhunt")))
 DATA = os.path.join(ROOT, "data")
 P = dict(
     sources=os.path.join(DATA, "search", "sources.yaml"),

@@ -30,7 +30,7 @@ COMMANDS = {
     "cover-check": ("cover_check.py", "자기소개서 답변 검사"),
     "eval-golden": ("eval_golden.py", "판정 정답 세트와 비교"),
     "git-log": ("git_log.sh", "로컬 git 저장소에서 내 커밋 로그"),
-    "setup": ("setup.sh", "스킬 연결 + Chromium · 폰트 · poppler (설치본은 개인 자료 폴더 준비까지)"),
+    "setup": ("setup.sh", "개인 자료 폴더 · 스킬 연결 · Chromium · 폰트 · poppler (터미널이면 고르는 화면, --yes 는 묻지 않고 전부)"),
 }
 # 설치본의 개인 자료 폴더에 두는 안내. 스킬을 읽지 않는 에이전트도 이 폴더에서 실행하면 설치된 지침을 찾아간다
 HOME_AGENTS = """# jobhunt data folder
@@ -69,21 +69,21 @@ def changes(res: str, since: str) -> str:
     return out[0] if out else ""
 
 
-def prepare_home(K) -> None:
-    """설치본: 개인 자료 폴더에 data/ 뼈대(없는 파일만)와 에이전트 안내(AGENTS.md · CLAUDE.md, 없을 때만)를 둔다."""
-    src = os.path.join(K.RES, "skeleton", "data")
+def prepare_home(res: str, root: str) -> None:
+    """설치본: 개인 자료 폴더(root)에 data/ 뼈대(없는 파일만)와 에이전트 안내(AGENTS.md · CLAUDE.md, 없을 때만)를 둔다."""
+    src, data = os.path.join(res, "skeleton", "data"), os.path.join(root, "data")
     for d, _, files in os.walk(src):
         for fn in files:
-            dst = os.path.join(K.DATA, os.path.relpath(os.path.join(d, fn), src))
+            dst = os.path.join(data, os.path.relpath(os.path.join(d, fn), src))
             if not os.path.exists(dst):
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copy2(os.path.join(d, fn), dst)
     for fn, text in (("AGENTS.md", HOME_AGENTS), ("CLAUDE.md", "@AGENTS.md\n")):
-        path = os.path.join(K.ROOT, fn)
+        path = os.path.join(root, fn)
         if not os.path.exists(path):
             with open(path, "w", encoding="utf-8") as f:
                 f.write(text)
-    print(f"▶ 개인 자료 폴더: {K.DATA}", flush=True)       # 뒤에 도는 setup.sh 출력보다 먼저 보이게
+    print(f"▶ 개인 자료 폴더: {data}", flush=True)       # 뒤에 도는 setup.sh 출력보다 먼저 보이게
 
 
 def usage() -> str:
@@ -115,9 +115,15 @@ def main(argv=None) -> int:
     path = os.path.join(HERE, COMMANDS[cmd][0])
     if path.endswith(".sh"):
         env = dict(os.environ)
-        if cmd == "setup" and K.RES == HERE:     # 설치본: 패키지 폴더를 스킬로 연결하고, 파이썬 패키지는 uv 가 이미 깔았다
-            prepare_home(K)
-            env.update(JOBHUNT_PY=sys.executable, JOBHUNT_SKILL_SRC=HERE)
+        if cmd == "setup":
+            import setup_ui
+            installed = K.RES == HERE
+            # 터미널이면 고르는 화면. 개인 자료 폴더는 설치본에서, 아직 자료가 없고 JOBHUNT_HOME 으로 정하지 않았을 때만 묻는다
+            root, rest = setup_ui.run(K.ROOT, rest, env, installed and not os.environ.get("JOBHUNT_HOME") and not os.path.isdir(K.DATA))
+            if installed:                        # 설치본: 패키지 폴더를 스킬로 연결하고, 파이썬 패키지는 uv 가 이미 깔았다
+                setup_ui.save_home(K.HOME_FILE, root)
+                prepare_home(K.RES, root)
+                env.update(JOBHUNT_HOME=root, JOBHUNT_PY=sys.executable, JOBHUNT_SKILL_SRC=HERE)
         return subprocess.call(["bash", path, *rest], env=env)
     sys.argv = [f"jobhunt {cmd}", *rest]
     runpy.run_path(path, run_name="__main__")    # 스크립트가 sys.exit 로 끝내면 그 종료 코드를 그대로 쓴다

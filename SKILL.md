@@ -17,7 +17,7 @@ Full design: `docs/ROADMAP.md`.
 Two folders, never mixed:
 
 - **Skill folder**: the folder holding this SKILL.md, with `modes/`, `references/`, `examples/` and `docs/`. It is installed with the tool (`uv tool install`) and replaced on every update, so never write into it. `modes/…` and `references/…` paths are relative to it.
-- **jobhunt home**: the user's folder (default `~/jobhunt`, changed with `JOBHUNT_HOME`; `jobhunt where` prints it). Personal data lives in its `data/`, and every `data/…` path is relative to it.
+- **jobhunt home**: the user's folder (default `~/jobhunt`, picked at install or set with `JOBHUNT_HOME`; `jobhunt where` prints it). Personal data lives in its `data/`, and every `data/…` path is relative to it.
 
 Commands are `jobhunt <command>` (`jobhunt --help`). In a clone of the repository (working on the tool itself) use `python3 scripts/cli.py <command>` instead, so the clone's own code runs: the skill folder is the repository root, and so is the home unless `JOBHUNT_HOME` is set (`python3 scripts/cli.py where` shows which).
 Changing the tool itself (`scripts/`, `modes/`, `references/`, `style_rules.yaml`) happens only in such a clone and goes upstream as a pull request (`CONTRIBUTING.md`). On an installed tool, tell the user what should change and offer to file an issue (https://github.com/jojaden/jobhunt/issues/new/choose) instead of editing the skill folder.

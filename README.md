@@ -85,13 +85,13 @@ curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | b
 이 한 줄이 하는 일:
 1. 파이썬 도구 관리자 [uv](https://docs.astral.sh/uv/)가 없으면 설치합니다.
 2. `jobhunt` 명령을 설치합니다(`uv tool install`). 도구는 uv가 관리하는 폴더에 따로 들어갑니다.
-3. `jobhunt setup`으로 개인 자료 폴더(`~/jobhunt/data`)를 만들고, AI 에이전트에 스킬을 연결하고, 이력서 빌드 환경(Chromium, 한글 폰트, poppler)을 설치합니다.
+3. `jobhunt setup`으로 개인 자료 폴더(기본 `~/jobhunt/data`)를 만들고, AI 에이전트에 스킬을 연결하고, 이력서 빌드 환경(Chromium, 한글 폰트, poppler)을 설치합니다. 터미널에서 실행하면 무엇을 할지 화면에서 고릅니다(아래).
 
 git·curl이 없으면 Ubuntu는 apt로 설치하고, macOS는 `xcode-select --install`을 안내합니다.
 
 | 설정 | 설명 |
 |---|---|
-| `JOBHUNT_HOME=경로` | 개인 자료 폴더 (기본 `~/jobhunt`). 바꾸면 셸 설정에도 `export JOBHUNT_HOME=경로`를 넣습니다 |
+| `JOBHUNT_HOME=경로` | 개인 자료 폴더를 묻지 않고 정할 때 (기본은 처음 설치 때 화면에서 고름) |
 | `JOBHUNT_REF=v1.2.0` | 버전(태그)이나 브랜치 고정 |
 | `JOBHUNT_REPO=주소` | fork한 저장소에서 받을 때 |
 | `… \| bash -s -- --no-skill` | 뒤 인자는 `jobhunt setup`으로 넘어갑니다 (아래 옵션) |
@@ -122,7 +122,7 @@ jobhunt setup
 <details>
 <summary>Claude Code·Codex 플러그인으로 스킬 받기</summary>
 
-스킬을 링크 대신 에이전트의 플러그인으로 받을 수도 있습니다.
+스킬을 링크 대신 에이전트의 플러그인으로 받을 수도 있습니다. 설치 화면에서 에이전트의 연결 방식을 "플러그인"으로 고르면 아래 명령을 대신 실행합니다.
 
 ```bash
 # Claude Code (2.1.275 이상. 대화창에서는 /plugin install jobhunt --marketplace jojaden/jobhunt)
@@ -159,13 +159,16 @@ codex plugin add jobhunt@jobhunt
 
 </details>
 
-`jobhunt setup`이 하는 일:
-- **개인 자료 폴더 준비:** `~/jobhunt/data`에 폴더 구조와 예시 파일을 만듭니다(있는 파일은 건드리지 않음). 스킬을 읽지 않는 에이전트도 찾아가도록 `AGENTS.md`·`CLAUDE.md`를 둡니다.
-- **AI 에이전트 스킬 연결:** 설치된 에이전트를 찾아 스킬 폴더(Claude Code `~/.claude/skills`, Codex `~/.codex/skills`)에 설치된 스킬을 링크합니다. 업데이트하면 스킬도 바로 새 버전이 됩니다. jobhunt 플러그인이 깔린 에이전트는 건너뜁니다.
-- **빌드 환경:** Playwright Chromium, 폰트(Pretendard, Noto CJK KR), poppler를 설치합니다.
+`jobhunt setup`이 하는 일 (터미널에서 실행하면 화살표·스페이스·엔터로 고릅니다):
+- **개인 자료 폴더 준비:** 처음 설치면 어디에 둘지 묻습니다. 경로를 치면 그 아래 폴더가 후보로 뜨고 Tab으로 채웁니다(예: `../develop` → `…/develop/jobhunt`, 엔터만 치면 `~/jobhunt`). 기본이 아닌 위치는 `~/.config/jobhunt/home`에 기억해 두므로 셸 설정에 넣을 것이 없습니다. 그 폴더의 `data/`에 폴더 구조와 예시 파일을 만들고(있는 파일은 건드리지 않음), 스킬을 읽지 않는 에이전트도 찾아가도록 `AGENTS.md`·`CLAUDE.md`를 둡니다.
+- **AI 에이전트 연결:** 설치된 에이전트(Claude Code, Codex)와 다른 스킬 폴더 중 고른 곳에 연결합니다. 에이전트마다 스킬 링크(`~/.claude/skills/jobhunt` 등, 업데이트하면 바로 새 버전)나 플러그인(아래, `claude`·`codex` 명령으로 대신 설치)을 고릅니다. 다시 실행하면 지금 연결된 대로 골라 둡니다.
+- **빌드 환경:** Playwright Chromium, 폰트(Pretendard, Noto CJK KR), poppler를 설치합니다. 이력서 PDF를 만들 때만 필요해 "나중에"를 골라도 됩니다.
+
+터미널이 없거나(자동 설치, CI) 아래 옵션을 주면 묻지 않습니다. 옵션 없이 묻지 않으면 감지된 에이전트에 모두 링크하고 빌드 환경까지 설치합니다.
 
 | 옵션 | 설명 |
 |---|---|
+| `--yes` | 묻지 않고 전부 |
 | `--skill-only` | 스킬 연결만 |
 | `--no-skill` | 스킬 연결 없이 빌드 환경만 |
 | `SKILLS_DIR=경로[:경로…]` | 스킬 폴더를 직접 지정할 때 (다른 에이전트, 여러 곳) |

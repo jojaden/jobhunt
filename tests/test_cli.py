@@ -8,7 +8,6 @@ import re
 import subprocess
 import sys
 import unittest
-from types import SimpleNamespace
 
 from support import HERE, TMP, K
 
@@ -72,9 +71,8 @@ class Cli(unittest.TestCase):
         os.makedirs(os.path.join(home, "data", "profile"), exist_ok=True)
         with open(os.path.join(home, "data", "profile", "README.md"), "w", encoding="utf-8") as f:
             f.write("사용자가 고친 것")
-        k = SimpleNamespace(RES=res, ROOT=home, DATA=os.path.join(home, "data"))
         with contextlib.redirect_stdout(io.StringIO()):
-            cli.prepare_home(k)
+            cli.prepare_home(res, home)
         read = lambda *p: K.read_text(os.path.join(home, *p))
         self.assertEqual(read("data", "profile", "README.md"), "사용자가 고친 것")
         self.assertEqual(read("data", "profile", "profile.example.yaml"), "예시")
