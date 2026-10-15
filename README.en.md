@@ -34,7 +34,7 @@
 ### Highlights
 
 - 🏢 **Widen the company list:** Finds companies that post mainly on their own career sites. It ranks them by reputation and size using tech-blog and GitHub-org lists, Wanted company data (pay band, headcount) and a list of well-known companies, then locates each career site and its hiring system (greetinghr, Ninehire, Greenhouse …) and adds it to the scan.
-- 🔎 **Find postings:** Collects from Wanted, Jumpit, LinkedIn, Saramin, Greenhouse boards (Daangn, Coupang, KRAFTON …), Toss, NHN, Kakao, greetinghr, Ninehire, Workday and Workable companies, and in-house career sites with no list on the first screen (through a list API found once during discovery), in one run. It filters by title, required years, location, duplicates across sites (company aliases unify Korean and English names), blocked companies and re-apply cooldowns.
+- 🔎 **Find postings:** Collects from Wanted, Jumpit, LinkedIn, Saramin, Greenhouse boards (Daangn, Coupang, KRAFTON …), Toss, NHN, Kakao, greetinghr, Ninehire, Workday and Workable companies, and in-house career sites with no list on the first screen (through a list API found once during discovery), in one run. It filters by title, required years, location, duplicates across sites (company aliases unify Korean and English names), blocked companies and re-apply cooldowns, and flags postings that may be the same opening under a different name so they are judged once.
 - 📊 **Score the fit:** Checks your location, English and tech-stack rules against quoted posting text, maps every requirement to your own experience, and scores 1–5. Required vs. preferred is told apart by Korean sentence endings ("~필요해요" vs. "~좋아요").
 - 📝 **Tailor the resume:** Turns the evaluation's plan (projects to lead with, skill overlap, wording) into a per-posting YAML, then builds it in one of three designs as an A4 PDF. Every build is checked automatically.
 - 📋 **Track applications:** Shows evaluated and triage-passed postings in a single table with "applied?" and "still open?" columns.
@@ -94,11 +94,11 @@ If git or curl is missing, Ubuntu installs it with apt and macOS points you to `
 | Setting | Meaning |
 |---|---|
 | `JOBHUNT_HOME=path` | Set your data folder without being asked (it is remembered, so nothing goes in your shell config; by default you pick it on screen at the first install) |
-| `JOBHUNT_REF=v1.2.0` | Pin a version (tag) or branch |
+| `JOBHUNT_REF=v1.3.0` | Pin a version (tag) or branch |
 | `JOBHUNT_REPO=url` | Install from a fork |
 | `… \| bash -s -- --no-skill` | Trailing arguments go to `jobhunt setup` (options below) |
 
-Example: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.2.0 bash`
+Example: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.3.0 bash`
 
 <details>
 <summary>If you installed with git clone before</summary>
@@ -188,6 +188,18 @@ codex plugin add jobhunt@jobhunt
 
 </details>
 
+Where things end up after installing:
+
+| What | Where |
+|---|---|
+| The `jobhunt` command and the tool (code, instructions) | A folder uv manages (usually `~/.local/share/uv/tools/jobhunt`, the command in `~/.local/bin/jobhunt`); `jobhunt where` shows it |
+| Your data folder (default `~/jobhunt`) | Only `data/` (your records) and short `AGENTS.md` and `CLAUDE.md` files that point to the installed instructions; no tool files |
+| Agent connection | Links `~/.claude/skills/jobhunt` and `~/.codex/skills/jobhunt`, or the plugin |
+| Remembered folder | `~/.config/jobhunt/home` (only for a non-default folder) |
+| Resume build environment | Playwright Chromium, Korean fonts, poppler |
+
+If you switched from an old git install, the data folder also has `.old-repo/` (the old tool files, moved aside) and, if you had a schedule, `scripts/weekly.sh` (a small file that forwards to the new command).
+
 > **Why keep the tool and your records apart?**
 >
 > - **Updates leave your records alone.** The tool sits in a folder uv manages and your records in `~/jobhunt/data`, so an update never touches them, and an accidental edit to a tool file can't break the update.
@@ -201,7 +213,7 @@ Updating:
 curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash
 ```
 
-Versions are git tags such as `v1.2.0`. Updating with the install command shows what changed since your version, and `jobhunt changes <old version>` shows it later ([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). Versions that change a `data/` format say how to move your files. `jobhunt --version` prints the installed version.
+Versions are git tags such as `v1.3.0`. Updating with the install command shows what changed since your version, and `jobhunt changes <old version>` shows it later ([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). Versions that change a `data/` format say how to move your files. `jobhunt --version` prints the installed version.
 
 Starting each agent:
 
@@ -233,6 +245,7 @@ Features that differ between agents, such as web search (Firecrawl, …) or publ
 ```bash
 jobhunt weekly                       # collect → liveness check → overview (no LLM, cron/launchd friendly)
 jobhunt scan --dry-run               # see what would be collected without writing files
+jobhunt scan --add found.yaml        # put postings found by hand through dedup and filters into the queue (the agent uses it)
 jobhunt report                       # posting report as HTML (data/search/reports/postings.html)
 jobhunt tracker report --alive       # the same rows as a text table
 jobhunt tracker set 3 지원함          # record an application
@@ -253,9 +266,10 @@ jobhunt where                        # where your data folder is (jobhunt --help
 | Toss (all affiliates), NHN, Kakao, greetinghr and Ninehire companies, career pages whose HTML links each posting | Career-site JSON / HTML | `scan.py` (companies found by `discover.py`) |
 | Workday, Workable, Ashby, JOBFLEX (recruiter.co.kr), roundHR and SK Careers companies | Hiring system's public list API | `scan.py` (`discover.py` identifies and verifies the system) |
 | In-house career sites with no posting list on the first screen (behind a tab or button, script-rendered) | List API (`jsonapi`) or sitemap found once during discovery | `scan.py` (`discover.py probe` finds it with a headless browser; the weekly scan needs no browser) |
-| JobKorea, Remember, career sites that block bots or need a token | HTML / browser / Firecrawl | The AI agent, following each company's reading recipe (`browse` in `sources.yaml`) and the per-type table in [`references/judgment.md`](references/judgment.md) §2; results appear in the report's "직접 확인한 곳" section |
+| JobKorea, Remember, career sites that block bots or need a token | HTML / browser / Firecrawl | The AI agent, following each company's reading recipe (`browse` in `sources.yaml`) and the per-type table in [`references/judgment.md`](references/judgment.md) §2, then adds them with `jobhunt scan --add`; results appear in the report's "직접 확인한 곳" section (a company that moved to automatic collection drops out) |
 
-- **What gets filtered out:** title keywords, required years (when the posting states them), location, postings you've already seen (including the same posting on another site), blocked companies, companies you applied to recently (6-month cooldown by default), and English-only JDs (when enabled).
+- **What gets filtered out:** title keywords, required years (when the posting states them), location, postings you've already seen (including the same posting on another site; legal-form marks such as `(주)` in company names and '개발자' vs '개발' in titles are ignored), blocked companies, companies you applied to recently (6-month cooldown by default), and English-only JDs (when enabled).
+- **Possibly the same posting:** a posting on another site with the same company and a nearly identical title, or the same title at a company whose name starts the same (an affiliate or a renamed company), is kept but tagged `[같은 공고일 수 있음]` in the queue. During triage, if the body is the same, the earlier judgment is reused. When a company was renamed, add the old name to `company_aliases` in `sources.yaml`.
 - **What doesn't:** the tech stack is never used as a filter at collection time. Narrowing the search to one language drops good postings that accept any language. The script only attaches a required/preferred hint, and the stack is judged during triage. There, when a qualification demands a language you don't use (`stack_languages` in `targets.yaml`, and only with no "etc." or "or equivalent" leeway), the script drafts the exclusion with the sentence behind it and the agent only checks that sentence.
 - **Open or closed:** `jobhunt alive` checks each site's detail API. A posting missing from a public list is not treated as closed.
 - **Speed and manners:** different sites are fetched at the same time; each site gets one request at a time, 1s after the previous response (1.6s for LinkedIn). Collecting 136 sources takes about 2 minutes, the closing check about a minute and a half. Rate limits (429) are never worked around: if LinkedIn cuts a run short, the scan keeps what it got, marks the source "⚠ 일부만" (partial) in the report, and the missed postings come in on the next run.
@@ -343,6 +357,7 @@ install.sh                   One-line install (uv → install or update jobhunt 
 pyproject.toml               The jobhunt package (the command uv tool install installs)
 .claude-plugin/ plugin/      Claude Code and Codex plugin marketplace and plugin (points to the installed skill)
 AGENTS.md                    Working guide for every AI agent (CLAUDE.md imports it)
+DESIGN.md                    Design rules for the posting report and resumes
 LEGAL_DISCLAIMER.md          Acceptable use and disclaimer (Korean)
 CHANGELOG.md                 Change log, with data/ migration notes per version (Korean)
 CONTRIBUTING.md              Contributing guide: dev setup, checks, adding a collector (Korean)
@@ -350,20 +365,25 @@ SKILL.md                     Skill entry point, routes requests to modes
 modes/                       Shared rules and per-mode procedures (onboard · scan · evaluate · tailor · cover · deep · interview · track · outcome)
 scripts/
   cli.py                     The jobhunt command (each command runs a script below as is)
+  jobkit.py                  Shared core: paths, HTTP, filters, duplicate checks, reading the scan log, queue and tracker
   scan.py · providers/       Posting collection (one module per site)
   discover.py                Company discovery (find career sites and hiring systems, add them to the scan)
   alive.py                   Open/closed check
+  score.py                   Judgment file → score, applied to the queue (score init drafts a judgment)
   tracker.py                 Application tracker and combined overview
+  report_html.py             Posting report as HTML (jobhunt report)
   cover_check.py             Cover-letter character counts and style checks
   eval_golden.py             Compare agent judgments with the golden set (after changing classification rules)
   weekly.py                  Weekly scan (scan → alive → report; weekly.sh keeps the old path working)
   render.py                  YAML → HTML → PDF + PNG, designs A/B/C
   check.py · check_links.py  Post-build checks, link reachability
   git_log.sh                 Extract your own commits from a local git repo
-  setup.sh                   Install: skill link + Chromium, fonts, poppler (run by jobhunt setup)
+  setup.sh · setup_ui.py     Install: skill link + Chromium, fonts, poppler (run by jobhunt setup) · the selection screen
   privacy_check.py           Keeps personal data out of commits (CI, .githooks/pre-commit)
 references/
   sources.md                 Per-site collection methods
+  company_seed.yaml          Known companies used by company discovery
+  scoring.md · judgment.md   Posting classification and scoring · score review and searching beyond the scripts
   yaml_schema.md · resume.schema.json   Resume YAML format (guide · schema for checks and editor autocomplete)
   writing_rules.md           Writing rules and how to check them
   style_rules.yaml           Banned words, translationese, symbol limits
@@ -375,7 +395,7 @@ examples/example.yaml        Fictional sample resume
 examples/golden/             Golden judgment set (fictional candidate, postings, answers)
 tests/                       Tests to run after changing the tool (offline, python3 -m unittest discover -s tests)
 assets/                      README preview images and sample PDF
-data/                        Your data (git-ignored; only structure and examples are committed; installed: ~/jobhunt/data)
+data/                        Your data (git-ignored; only structure and examples are committed; installed: data/ in your data folder, default ~/jobhunt/data)
   profile/ experience/ preferences/ portfolio/ search/ job_postings/ applications/ resumes/ output/ interview/
 ```
 
