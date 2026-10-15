@@ -31,7 +31,7 @@ boards:
   saramin:  { enabled: true, keywords: [백엔드 개발자, 서버 개발자] }
   jobkorea: { enabled: true, keywords: [백엔드 개발자, 서버 개발자] }
   linkedin: { enabled: true, keywords: [백엔드 개발자, backend engineer], location: "Seoul, South Korea", korean_only: true, period_days: 30 }
-  remember: { enabled: true, keywords: [백엔드] }
+  remember: { enabled: true, job_category_ids: [310, 323, 327] }   # 직군: 백엔드 · DevOps · 클라우드 엔지니어 (references/sources.md)
 
 # 자체 채용 사이트로 뽑는 기업. priority: true 는 매 스캔마다 전부 돈다.
 # api 는 references/sources.md 에 방법이 있는 것만 적는다. 확인 안 한 URL은 넣지 않는다.
