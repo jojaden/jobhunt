@@ -26,6 +26,7 @@ import sys
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from types import SimpleNamespace
+from typing import FrozenSet, List, Optional, Tuple, cast
 from urllib.parse import urlsplit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -34,11 +35,13 @@ import jobkit as K  # noqa: E402
 import providers  # noqa: E402
 
 NEW_HEADER = "## 새로 수집 (선별 전)"
+Run = Tuple[str, providers.Collector, dict]   # (출처 이름, 모듈, sources.yaml 설정)
 
 
-def plan(sources: dict, only):
+def plan(sources: dict, only: Optional[List[str]]) -> Tuple[List[Run], List[Tuple[str, dict]]]:
     """(이름, 모듈, cfg) 목록과 스크립트가 못 도는 (이름, cfg) 목록."""
-    runs, manual = [], []
+    runs: List[Run] = []
+    manual: List[Tuple[str, dict]] = []
     for name, cfg in (sources.get("boards") or {}).items():
         if not cfg.get("enabled"):
             continue
@@ -53,7 +56,7 @@ def plan(sources: dict, only):
     return runs, manual
 
 
-def added(path: str):
+def added(path: str) -> List[Run]:
     """--add 파일 → 출처 하나처럼 도는 (이름, 모듈, cfg). 항목: url · company · title · source 필수,
     location · career [최소, 최대] · posted_at · closes_at · text(본문) 선택. 본문은 받지 않고 적힌 그대로 쓴다.
     제목 필터는 걸지 않는다: 에이전트가 읽고 고른 공고라, 필터에 없는 제목(예: "웹 애플리케이션 엔지니어")도 넣을 수 있어야 한다."""
@@ -65,19 +68,19 @@ def added(path: str):
                           company=it["company"], title=it["title"], location=it.get("location") or "",
                           posted_at=str(it.get("posted_at") or ""), closes_at=str(it.get("closes_at") or ""),
                           text=it.get("text") or "", extra=dict(career=it.get("career"))))
-    mod = SimpleNamespace(__name__="added", collect=lambda cfg: jobs, detail=lambda j: j.text)
+    mod = cast(providers.Collector, SimpleNamespace(__name__="added", collect=lambda cfg: jobs, detail=lambda j: j.text))
     return [("직접 찾음", mod, {})]
 
 
-def _collect(run, seen_urls):
+def _collect(run: Run, seen_urls: FrozenSet[str]) -> Tuple[List[K.Job], Optional[str]]:
     """(공고 목록, 오류). 한 채널이 깨져도 나머지는 돈다. seen_urls 는 상세를 공고마다 받는 공급원이 본 공고를 건너뛰는 데 쓴다."""
     try:
         return run[1].collect(dict(run[2], seen_urls=seen_urls)), None
     except Exception as e:
-        return None, f"{type(e).__name__}: {e}"
+        return [], f"{type(e).__name__}: {e}"
 
 
-def _detail(mod, j):
+def _detail(mod: providers.Collector, j: K.Job) -> None:
     try:
         j.text = mod.detail(j)
     except Exception as e:
@@ -102,7 +105,7 @@ def recheck_dups(dry_run: bool) -> int:
     return 0
 
 
-def main(argv=None):
+def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="공고 수집")
     ap.add_argument("--only", help="쉼표로 구분한 채널·회사·공급원 이름")
     ap.add_argument("--dry-run", action="store_true")
@@ -130,9 +133,10 @@ def main(argv=None):
     black = K.blacklist_companies()
 
     runs, manual = (added(a.add), []) if a.add else plan(sources, a.only.split(",") if a.only else None)
-    stats, errors, fresh, hist = {}, {}, [], []
-    reasons = Counter()
-    batch_keys = set()
+    stats, errors, fresh = {}, {}, []
+    hist: List[K.HistoryRow] = []
+    reasons: Counter[str] = Counter()
+    batch_keys: set[tuple[str, str]] = set()
     # 출처마다 스레드 하나. 같은 사이트 요청은 jobkit.http_get 이 한 번에 하나씩, 간격을 두고 보낸다
     pool = ThreadPoolExecutor(max(len(runs), 1))
     known = frozenset(seen)
@@ -168,9 +172,9 @@ def main(argv=None):
                 batch_keys |= keys
                 if not url_seen:
                     seen.add(j.url)
-                    hist.append(dict(url=j.url, first_seen=K.TODAY, portal=j.source, title=j.title, company=j.company,
-                                     status=status or "added", location=j.location, posted_at=j.posted_at,
-                                     normalized_company=K.norm_company(j.company)))
+                    hist.append(K.HistoryRow(url=j.url, first_seen=K.TODAY, portal=j.source, title=j.title, company=j.company,
+                                             status=status or "added", location=j.location, posted_at=j.posted_at,
+                                             normalized_company=K.norm_company(j.company)))
                 if status:
                     reasons[status] += 1
                     continue

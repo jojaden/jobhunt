@@ -438,6 +438,7 @@ def cmd_probe(a):
 
 def classify(c: dict, careers: str, via: str, browser: bool = True) -> dict:
     """밖에서 찾은 채용 사이트 URL 로 채용 시스템을 판별하고 목록을 받아 검증한다."""
+    st: int | str                             # HTTP 상태, 또는 연결 실패의 예외 이름
     try:
         st, page = K.http_get(careers, accept="text/html", timeout=15)
     except OSError as e:                      # TLS 거부·DNS 실패 — URL 은 남기고 판별만 건너뛴다

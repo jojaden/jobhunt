@@ -17,7 +17,8 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Dict, List, NamedTuple, Optional, Set, TypedDict, cast
+from http.client import HTTPMessage
+from typing import IO, Any, Dict, Iterable, List, NamedTuple, Optional, Sequence, Set, Tuple, TypedDict, Union, cast
 from urllib.parse import urlsplit
 
 import yaml
@@ -76,10 +77,11 @@ TODAY = date.today().isoformat()
 # ── HTTP ──────────────────────────────────────────────
 class _Redirect308(urllib.request.HTTPRedirectHandler):
     """파이썬 3.10 urllib 은 308 을 따라가지 않는다 (3.11부터 지원). 307 처럼 다룬다."""
-    def http_error_308(self, req, fp, code, msg, headers):
+    def http_error_308(self, req: urllib.request.Request, fp: IO[bytes], code: int, msg: str, headers: HTTPMessage) -> Any:
         return self.http_error_307(req, fp, code, msg, headers)
 
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
+    def redirect_request(self, req: urllib.request.Request, fp: IO[bytes], code: int, msg: str, headers: HTTPMessage,
+                         newurl: str) -> Optional[urllib.request.Request]:
         if code == 308:
             code = 307
         return super().redirect_request(req, fp, code, msg, headers, newurl)
@@ -101,7 +103,7 @@ def site(host: str) -> str:
 
 
 def http_get(url: str, accept: str = "application/json", delay: float = 1.0, timeout: int = 20, headers: Optional[dict] = None,
-             data: Optional[bytes] = None):
+             data: Optional[bytes] = None) -> Tuple[int, str]:
     """(status, text). 같은 사이트에는 한 번에 하나씩, 앞 요청이 끝난 뒤 delay 초 간격을 둔다 (references/sources.md 공통 규칙).
     스레드에서 동시에 불러도 지켜진다. data 가 있으면 POST. gzip 으로 받아 풀어서 돌려준다 (안 하는 사이트는 그대로)."""
     key = site(url.split("/")[2])
@@ -126,15 +128,15 @@ def http_get(url: str, accept: str = "application/json", delay: float = 1.0, tim
     return status, body
 
 
-def http_post(url: str, body, **kw):
+def http_post(url: str, body: Union[dict, str], **kw: Any) -> Tuple[int, str]:
     """(status, text). body 가 dict 면 JSON, 문자열이면 폼(application/x-www-form-urlencoded)으로 보낸다."""
     is_json = not isinstance(body, str)
     ctype = "application/json" if is_json else "application/x-www-form-urlencoded; charset=UTF-8"
-    data = (json.dumps(body, ensure_ascii=False) if is_json else body).encode("utf-8")
+    data = (body if isinstance(body, str) else json.dumps(body, ensure_ascii=False)).encode("utf-8")
     return http_get(url, headers={"Content-Type": ctype, **(kw.pop("headers", None) or {})}, data=data, **kw)
 
 
-def get_json(url: str, **kw):
+def get_json(url: str, **kw: Any) -> Any:
     status, body = http_get(url, **kw)
     if status != 200:
         raise ShapeError(f"HTTP {status}: {url}")
@@ -160,7 +162,7 @@ def url_part(pattern: str, url: str, group: int = 0) -> str:
 class Partial(list):
     """일부만 받은 collect 결과 (예: 요청 제한으로 멈춤). 받은 공고는 그대로 쓰고, why 는 수집 보고에 남긴다."""
 
-    def __init__(self, jobs, why: str):
+    def __init__(self, jobs: Iterable[Job], why: str) -> None:
         super().__init__(jobs)
         self.why = why
 
@@ -261,7 +263,7 @@ def location_check(loc: str, lf: dict) -> str:
     return "unknown"
 
 
-def career_check(career, cf: dict) -> Optional[str]:
+def career_check(career: Optional[Sequence[Any]], cf: dict) -> Optional[str]:
     """(최소, 최대) 연차가 있을 때만 판정. sources.yaml career_filter. 값이 없으면 통과."""
     if not cf or not career or career[0] in (None, ""):
         return None
@@ -313,7 +315,7 @@ def read_history() -> List[HistoryRow]:
     return rows
 
 
-def append_history(rows: List[HistoryRow]):
+def append_history(rows: List[HistoryRow]) -> None:
     new = not os.path.exists(P["history"])
     with open(P["history"], "a", encoding="utf-8") as f:
         if new:
@@ -329,7 +331,7 @@ def read_text(path: str) -> str:
         return f.read()
 
 
-def write_text(path: str, s: str):
+def write_text(path: str, s: str) -> None:
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         f.write(s)
@@ -537,7 +539,7 @@ def blacklist_companies() -> set:
     return out
 
 
-def company_in(company: str, names, exact: bool = False) -> Optional[str]:
+def company_in(company: str, names: Iterable[str], exact: bool = False) -> Optional[str]:
     """exact=True 면 정규화한 이름이 같을 때만 (쿨다운: '가나다증권' 지원이 '가나다' 공고까지 막지 않게)."""
     n = norm_company(company)
     for x in names:

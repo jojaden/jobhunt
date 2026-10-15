@@ -21,7 +21,7 @@ import json
 import os
 import re
 import sys
-from typing import Dict, List, TypedDict, Union, cast
+from typing import Dict, List, Optional, Sequence, Tuple, TypedDict, TypeVar, Union, cast
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -120,7 +120,10 @@ def _met(x: Line) -> str:
     return ("yes" if v else "no") if isinstance(v, bool) else str(v)
 
 
-def _avg(xs, default):
+_T = TypeVar("_T")
+
+
+def _avg(xs: Sequence[float], default: _T) -> Union[float, _T]:
     return sum(xs) / len(xs) if xs else default
 
 
@@ -137,7 +140,7 @@ def score(j: Judgment, cfg: dict) -> dict:
     work = _avg([FIT[x["fit"]] for x in j.get("work") or []], 3.0)
     req_items = j.get("required") or []
 
-    def req_value(x):
+    def req_value(x: Line) -> float:
         if _met(x) in REQ:
             return REQ[_met(x)]
         return CORE_ALT[0] if x.get("gap") == "core" and x.get("alt") else REQ_NO[x.get("gap", "bridge")]
@@ -167,7 +170,7 @@ def score(j: Judgment, cfg: dict) -> dict:
 
     caps = []
 
-    def cap(limit, why):
+    def cap(limit: float, why: str) -> None:
         nonlocal total
         if total > limit:
             caps.append(f"{why} → 상한 {limit}")
@@ -198,12 +201,12 @@ def score(j: Judgment, cfg: dict) -> dict:
                 band=f"{name} {lo}–{hi}: {band_why}")
 
 
-def band(req_items: List[Line], pref_items: List[Line], work_items: List[Line]):
+def band(req_items: List[Line], pref_items: List[Line], work_items: List[Line]) -> Tuple[str, float, float, str]:
     """필수·우대 충족도 → (등급, 하한, 상한, 이유). 공통 기준이라 개인 설정을 읽지 않는다."""
     req_no = [x for x in req_items if _met(x) not in REQ]
     keys = [x for x in pref_items if x.get("key")]
     key_miss = [x for x in keys if _met(x) != "yes"]
-    ratio = _avg([PREF[_met(x)] for x in pref_items], None)
+    ratio = _avg([PREF[_met(x)] for x in pref_items], 0.0)   # 우대가 있을 때만 읽는다
     if req_no:
         return ("C", 1.0, 3.9, f"필수 {len(req_no)}줄 못 채움")
     new = sum(1 for x in work_items if x.get("fit") == "new")
@@ -257,11 +260,11 @@ def init(path: str) -> Judgment:
     return out
 
 
-def _langs(line: str):
+def _langs(line: str) -> List[str]:
     return [k for k, p in LANG_PATS.items() if re.search(rf"(?<![A-Za-z])(?:{p})(?![A-Za-z])", line, re.I)]
 
 
-def stack_draft(required, known) -> str:
+def stack_draft(required: List[Line], known: Optional[List[str]]) -> str:
     """자격요건이 사용자 언어(known)에 없는 언어를 꼭 요구하면 그 줄, 아니면 "".
     확실한 경우만 고른다: 어느 줄이든 사용자 언어나 대체 허용이 있으면 초안을 내지 않는다 (기존 판정과 대조해 정함)."""
     if not known or not required:
@@ -282,7 +285,7 @@ def stack_draft(required, known) -> str:
 PENDING, WAIT = "## 새로 수집 (선별 전)", "## 대기"
 
 
-def _sections(md: str):
+def _sections(md: str) -> List[Tuple[str, List[str]]]:
     """[(제목, [줄])] — 제목 없는 머리말은 ("", 줄)."""
     out: list[tuple[str, list[str]]] = [("", [])]
     for line in md.split("\n"):
@@ -293,7 +296,7 @@ def _sections(md: str):
     return out
 
 
-def apply(files) -> str:
+def apply(files: List[str]) -> str:
     """판정 결과를 pipeline.md 에 반영한다. 선별 전·대기에 있던 줄과 아직 없는 공고만 바꾸고, 다른 섹션(지원 완료·마감·처리 완료)은 건드리지 않는다."""
     cfg, today = config(), K.TODAY
     secs = _sections(K.read_text(K.P["pipeline"]) or "# 공고 대기함\n")
@@ -361,7 +364,7 @@ def apply(files) -> str:
     return f"pipeline.md 반영 {n}건 (대기 {len(new_wait)} · 제외 {n_fail}, 다른 섹션에 있어 건너뜀 {len([f for f in files]) - n})"
 
 
-def _row(j, r):
+def _row(j: Judgment, r: dict) -> str:
     if r["total"] is None:
         why = f"조건: {', '.join(r['gate'])}" if r["gate"] else "분류할 줄 없음"
         return f"| {j.get('company')} | {j.get('title')} | — | {r['verdict']} | {why} | {j.get('gate_note') or j.get('note', '')} |"
@@ -375,7 +378,7 @@ def _row(j, r):
     return f"| {j.get('company')} | {j.get('title')} | {r['total']}/5 | {r['verdict']} | {detail} | {j.get('note', '')} |"
 
 
-def main(argv=None):
+def main(argv: Optional[List[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="공고 점수 계산")
     ap.add_argument("files", nargs="+")
     ap.add_argument("--json", action="store_true")
