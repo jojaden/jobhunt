@@ -6,6 +6,8 @@
       per 는 50 까지 (100 은 400). 직군 번호 여럿은 합집합, 키워드와 함께 주면 둘 다 맞는 공고.
       모르는 직군 번호는 조용히 무시되고, 모두 모르는 번호면 전체 공고(약 1만 4천 건)가 나온다.
 마감: GET career-api.rememberapp.co.kr/job_postings/{id} → data.status (published / closed)·ends_at. 지워진 공고는 404.
+요청 제한(HTTP 429)이 나면 그 검색은 멈추고 받은 공고까지만 쓴다 (Partial 로 돌려줘 수집 보고에 "일부만"으로 남고,
+못 받은 공고는 기록되지 않아 다음 실행에 다시 받는다). 마감 확인에서 429 는 알 수 없음(None).
 헤드헌팅 공고는 실제 회사가 비공개라 회사 이름 앞에 "[헤드헌팅] " 을 붙여 다른 회사 공고와 중복으로 묶이지 않게 한다.
 """
 import json
@@ -13,7 +15,7 @@ import re
 from datetime import datetime
 from typing import List, Optional
 
-from jobkit import Job, ShapeError, get_json, http_get
+from jobkit import Job, Partial, ShapeError, http_get
 
 API = "https://career-api.rememberapp.co.kr/job_postings"
 WEB = "https://career.rememberapp.co.kr/job/posting"
@@ -37,12 +39,22 @@ def _searches(cfg: dict) -> List[dict]:
 
 
 def collect(cfg: dict) -> List[Job]:
-    jobs, seen = [], set()
+    jobs, seen, stopped = [], set(), []
     cats = set(cfg.get("job_category_ids") or [])
     for search in _searches(cfg):
         for page in range(1, cfg.get("max_pages", 20) + 1):
             q = {"search": search, "page": page, "per": 50}
-            d = get_json(f"{API}/search", data=json.dumps(q, ensure_ascii=False).encode(), headers={"Content-Type": "application/json"})
+            status, body = http_get(f"{API}/search", data=json.dumps(q, ensure_ascii=False).encode(),
+                                    headers={"Content-Type": "application/json"})
+            if status == 429:
+                stopped.append(f"'{(search.get('keywords') or ['직군'])[0]}' {page}쪽부터")
+                break
+            if status != 200:
+                raise ShapeError(f"HTTP {status}: 리멤버 목록")
+            try:
+                d = json.loads(body)
+            except ValueError:
+                raise ShapeError("리멤버 목록이 JSON 아님") from None
             ps, meta = d.get("data"), d.get("meta")
             if not isinstance(ps, list) or not isinstance(meta, dict):
                 raise ShapeError("리멤버 목록에 data·meta 없음")
@@ -60,7 +72,7 @@ def collect(cfg: dict) -> List[Job]:
                                 text=_text(p), extra=dict(career=(p.get("min_experience"), p.get("max_experience")))))
             if page >= (meta.get("total_pages") or 0):
                 break
-    return jobs
+    return Partial(jobs, "요청 제한(429)으로 못 받음: " + ", ".join(stopped)) if stopped else jobs
 
 
 def detail(job: Job) -> str:
@@ -78,6 +90,8 @@ def alive(url: str) -> Optional[bool]:
     status, body = http_get(f"{API}/{m.group(1)}")
     if status == 404:
         return False
+    if status == 429:
+        return None
     if status != 200:
         raise ShapeError(f"HTTP {status}: 리멤버 상세")
     d = json.loads(body).get("data")
