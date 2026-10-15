@@ -31,7 +31,8 @@ def bad_paths(paths):
 
 def _simple_yaml(text: str) -> dict:
     """PyYAML 이 없을 때(훅이 다른 가상환경의 python3 로 돌 때): profile.yaml 의 '키: 값' 을 들여쓰기로 중첩해 읽는다."""
-    out, stack = {}, [(-1, None)]
+    out: dict = {}
+    stack: list[tuple[int, str | None]] = [(-1, None)]
     for line in text.split("\n"):
         m = re.match(r"^(\s*)([\w-]+):\s*(.*?)\s*$", re.sub(r"(^|\s)#.*$", "", line))   # 주석을 떼고
         if not m:

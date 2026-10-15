@@ -9,14 +9,14 @@ import json
 import re
 from typing import List, Optional
 
-from jobkit import Job, ShapeError, html_text, http_get
+from jobkit import Job, ShapeError, html_text, http_get, url_part
 
 Q = "rcrt/loadJobList.do?annoId=&sw=&subJobCdArr=&sysCompanyCdArr=&empTypeCdArr=&entTypeCdArr=&workAreaCdArr=&firstIndex={}"
 HOSTS = ("recruit.navercorp.com", "recruit.navercloudcorp.com", "recruit.naverfincorp.com", "recruit.webtoonscorp.com")
 
 
 def _host(url: str) -> str:
-    h = re.match(r"https?://([^/]+)", url).group(1)
+    h = url_part(r"^https?://([^/]+)", url, 1)
     return "recruit.navercloudcorp.com" if h == "career.navercloudcorp.com" else h   # 소개 사이트 → 채용 시스템
 
 

@@ -248,7 +248,7 @@ def _identify(url: str, page: str, name: str, **extra):
         careers = own[0] if own else url
         n = verify(ats, careers, name, **extra)
         found.append(dict(careers=careers, ats=ats, **({"verified": n} if n is not None else {})))
-    return (sorted(found, key=lambda r: (-(r.get("verified") or 0), "verified" not in r)) or [None])[0]
+    return sorted(found, key=lambda r: (-(r.get("verified") or 0), "verified" not in r))[0] if found else None
 
 
 SUBS = ("careers", "career", "recruit", "jobs", "talent", "join")
@@ -275,7 +275,7 @@ def _guess(home: str):
 
 def _links_hint(url: str, page: str) -> str:
     """평문 HTML 에 공고 링크가 2개 이상이면 htmllinks 용 links 정규식 제안 (숫자를 \\d+ 로)."""
-    pats = {}
+    pats: dict[str, int] = {}
     for h in set(re.findall(r'href="([^"]*?/(?:jobs?|recruits?|careers?|positions?|openings?|o|detail|job_posting)/[\w-]*\d[\w-]*/?)"', page or "", re.I)):
         pat = re.sub(r"\d+", r"\\d+", re.escape(urllib.parse.urlparse(h).path))
         pats[pat] = pats.get(pat, 0) + 1

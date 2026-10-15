@@ -10,7 +10,7 @@ import re
 from typing import List, Optional
 from urllib.parse import urljoin, urlparse
 
-from jobkit import P, Job, ShapeError, html_text, http_get, load_yaml
+from jobkit import P, Job, ShapeError, html_text, http_get, load_yaml, url_part
 
 
 def _page(url: str):
@@ -88,5 +88,5 @@ def alive(url: str) -> Optional[bool]:
     if status != 200 or not c:
         return None
     home = _page(c["careers_url"])[1]
-    root = _page(re.match(r"https?://[^/]+/", c["careers_url"]).group(0))[1]   # 사이트 첫 화면으로 돌려보내는 곳
+    root = _page(url_part(r"^https?://[^/]+/", c["careers_url"]))[1]   # 사이트 첫 화면으로 돌려보내는 곳
     return bool(title) and _clean(title, _site(home)) not in {_clean(home, _site(home)), _clean(root, _site(home))}

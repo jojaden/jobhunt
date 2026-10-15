@@ -10,7 +10,7 @@ import json
 import re
 from typing import List, Optional
 
-from jobkit import P, Job, ShapeError, html_text, http_get, load_yaml
+from jobkit import P, Job, ShapeError, html_text, http_get, load_yaml, url_part
 
 API = "https://api.ninehire.com/identity-access/homepage/recruitments"
 _ND = re.compile(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', re.S)
@@ -27,7 +27,7 @@ def _next_data(url: str) -> dict:
 
 
 def _base(url: str) -> str:
-    return re.match(r"https?://[^/]+", url).group(0)
+    return url_part(r"^https?://[^/]+", url)
 
 
 def _company_from_posting(careers_url: str):

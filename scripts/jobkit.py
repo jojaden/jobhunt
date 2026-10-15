@@ -131,6 +131,15 @@ class ShapeError(Exception):
     """응답 형식이 예상과 다름. 조용히 0건으로 넘기지 않고 보고한다."""
 
 
+def url_part(pattern: str, url: str, group: int = 0) -> str:
+    """주소에서 정규식에 맞는 부분 (group 번째 묶음). 맞지 않으면 ValueError:
+    응답이 아니라 sources.yaml 이나 공고 주소가 예상과 다른 것이라 ShapeError 로 보고하지 않는다."""
+    m = re.search(pattern, url or "")
+    if not m:
+        raise ValueError(f"주소 형식이 예상과 다름 ({pattern}): {url}")
+    return m.group(group)
+
+
 class Partial(list):
     """일부만 받은 collect 결과 (예: 요청 제한으로 멈춤). 받은 공고는 그대로 쓰고, why 는 수집 보고에 남긴다."""
 
@@ -258,7 +267,8 @@ _PREF = re.compile(r"(좋아요|좋습니다|우대|더 좋|이면 좋|plus|pref
 
 def stack_hint(text: str) -> str:
     """자격요건 문장에서 언어 언급을 필수/우대로 나눈 힌트. 거르지 않는다 — 판정은 evaluate/1차 선별에서."""
-    req, pref = set(), set()
+    req: set[str] = set()
+    pref: set[str] = set()
     for sent in re.split(r"[\n•·]|(?<=[.!?요다])\s", text or ""):
         langs = [x for x in LANGS if re.search(rf"(?<![A-Za-z]){re.escape(x)}(?![A-Za-z#+])", sent)]
         if not langs:

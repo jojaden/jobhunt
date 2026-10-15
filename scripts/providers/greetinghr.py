@@ -8,7 +8,7 @@ import json
 import re
 from typing import List, Optional
 
-from jobkit import Job, ShapeError, html_text, http_get
+from jobkit import Job, ShapeError, html_text, http_get, url_part
 
 _ND = re.compile(r'<script id="__NEXT_DATA__" type="application/json">(.*?)</script>', re.S)
 
@@ -31,7 +31,7 @@ def _query(nd: dict, first_key: str):
 
 
 def base_of(url: str) -> str:
-    return re.match(r"https?://[^/]+", url).group(0)
+    return url_part(r"^https?://[^/]+", url)
 
 
 def collect(cfg: dict) -> List[Job]:
