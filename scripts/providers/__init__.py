@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Protocol
 
 from jobkit import Job
 
-from . import greenhouse, greetinghr, hiworks, htmllinks, jsonapi, jumpit, kakao, lever, line, linkedin, naver, nhn, ninehire, saramin, toss, wanted, woowa
+from . import greenhouse, greetinghr, hiworks, htmllinks, jsonapi, jumpit, kakao, lever, line, linkedin, naver, nhn, ninehire, remember, saramin, toss, wanted, woowa
 
 
 
@@ -32,8 +32,8 @@ class Provider(Collector, Protocol):
     def handles(self, url: str) -> bool: ...
 
 
-BOARDS: Dict[str, Provider] = {"wanted": wanted, "jumpit": jumpit, "linkedin": linkedin, "saramin": saramin}
-ALL: List[Provider] = [wanted, jumpit, linkedin, saramin, greenhouse, lever, toss, nhn, kakao, greetinghr, ninehire, naver, woowa, line, hiworks, htmllinks, jsonapi]
+BOARDS: Dict[str, Provider] = {"wanted": wanted, "jumpit": jumpit, "linkedin": linkedin, "saramin": saramin, "remember": remember}
+ALL: List[Provider] = [wanted, jumpit, linkedin, saramin, remember, greenhouse, lever, toss, nhn, kakao, greetinghr, ninehire, naver, woowa, line, hiworks, htmllinks, jsonapi]
 BY_ATS: Dict[str, Provider] = {"greetinghr": greetinghr, "ninehire": ninehire, "greenhouse": greenhouse, "hiworks": hiworks,   # sources.yaml 의 ats: (discover.py 가 적음)
           **{name: jsonapi for name in jsonapi.PRESETS}}                                               # workday·recruiter·roundhr·workable·ashby·skcareers
 

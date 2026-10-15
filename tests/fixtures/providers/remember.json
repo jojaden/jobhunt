@@ -1,0 +1,62 @@
+{"cases": [
+  {
+    "name": "목록(쪽 넘김 · 중복 제거 · 헤드헌팅 표시) · 본문 · 마감",
+    "cfg": {"keywords": ["백엔드"], "max_pages": 5},
+    "responses": {
+      "https://career-api.rememberapp.co.kr/job_postings/search": [
+        {"json": {"data": [
+          {"id": 901, "title": "백엔드 엔지니어 (3년 이상)", "status": "published",
+           "job_description": "• 주문 서버를 개발합니다.\n", "qualifications": "• Go 또는 Java 3년 이상\n", "preferred_qualifications": "• Kafka 운영 경험",
+           "introduction": "", "min_experience": 3, "max_experience": 8, "starts_at": "2026-10-15T00:00:00.000+09:00",
+           "ends_at": "2099-11-16T15:30:00.000+09:00", "explicit_due": true,
+           "organization": {"id": 1, "name": "(주)가나다랩", "headhunter": false},
+           "addresses": [{"address_level1": "경기도", "address_level2": "성남시 분당구"}], "normalized_address": {"level1": "경기", "level2": "성남시"}},
+          {"id": 902, "title": "결제 서버 개발자", "status": "published",
+           "job_description": "결제 시스템 개발", "qualifications": null, "preferred_qualifications": null,
+           "min_experience": 5, "max_experience": null, "starts_at": "2026-10-14T00:00:00.000+09:00", "ends_at": null, "explicit_due": false,
+           "organization": {"id": 2, "name": "(주)라마바써치", "headhunter": true},
+           "addresses": [{"address_level1": "서울", "address_level2": "강남구"}, {"address_level1": "서울", "address_level2": "마포구"}]}
+        ], "meta": {"total_count": 3, "total_pages": 2, "per": 30, "page": 1}}},
+        {"json": {"data": [
+          {"id": 901, "title": "백엔드 엔지니어 (3년 이상)", "organization": {"name": "(주)가나다랩", "headhunter": false}},
+          {"id": 903, "title": "플랫폼 엔지니어", "status": "published", "starts_at": "2026-10-13T00:00:00.000+09:00", "ends_at": null,
+           "organization": {"id": 3, "name": "사아자", "headhunter": false}, "addresses": []}
+        ], "meta": {"total_count": 3, "total_pages": 2, "per": 30, "page": 2}}}
+      ],
+      "https://career-api.rememberapp.co.kr/job_postings/901": {"json": {"data": {"id": 901, "status": "published", "ends_at": "2099-11-16T15:30:00.000+09:00"}, "meta": {}}},
+      "https://career-api.rememberapp.co.kr/job_postings/902": {"json": {"data": {"id": 902, "status": "published", "ends_at": null}, "meta": {}}},
+      "https://career-api.rememberapp.co.kr/job_postings/903": {"json": {"data": {"id": 903, "status": "closed", "ends_at": null}, "meta": {}}},
+      "https://career-api.rememberapp.co.kr/job_postings/904": {"json": {"data": {"id": 904, "status": "published", "ends_at": "2020-01-01T23:59:59.000+09:00"}, "meta": {}}},
+      "https://career-api.rememberapp.co.kr/job_postings/905": {"json": {"data": {"id": 905, "status": "draft"}, "meta": {}}},
+      "https://career-api.rememberapp.co.kr/job_postings/906": {"status": 404, "html": ""}
+    },
+    "jobs": [
+      {"source": "remember", "id": "901", "url": "https://career.rememberapp.co.kr/job/posting/901", "company": "(주)가나다랩",
+       "title": "백엔드 엔지니어 (3년 이상)", "location": "경기도 성남시 분당구", "posted_at": "2026-10-15", "closes_at": "2099-11-16",
+       "extra": {"career": [3, 8]},
+       "text_has": ["## 주요업무\n• 주문 서버를 개발합니다.", "## 자격요건\n• Go 또는 Java 3년 이상", "## 우대사항\n• Kafka 운영 경험", "## 경력\n3~8년"],
+       "text_lacks": ["## 소개"]},
+      {"id": "902", "company": "[헤드헌팅] (주)라마바써치", "location": "서울 강남구, 서울 마포구", "closes_at": "상시",
+       "extra": {"career": [5, null]}, "text_has": ["## 경력\n5년 이상"], "text_lacks": ["## 자격요건"]},
+      {"id": "903", "company": "사아자", "location": "", "text": ""}
+    ],
+    "detail": {"901": {"has": ["## 자격요건\n• Go 또는 Java 3년 이상"]}},
+    "alive": [["https://career.rememberapp.co.kr/job/posting/901", true], ["https://career.rememberapp.co.kr/job/posting/902", true],
+              ["https://career.rememberapp.co.kr/job/posting/903", false], ["https://career.rememberapp.co.kr/job/posting/904", false],
+              ["https://career.rememberapp.co.kr/job/posting/905", null], ["https://career.rememberapp.co.kr/job/posting/906", false],
+              ["https://career.rememberapp.co.kr/job/postings", null]],
+    "handles": [["https://career.rememberapp.co.kr/job/posting/901", true], ["https://career.rememberapp.co.kr/job/postings?search=x", false]]
+  },
+  {
+    "name": "검색 결과 없음 (형식 변경 아님)",
+    "cfg": {"keywords": ["없는말"]},
+    "responses": {"https://career-api.rememberapp.co.kr/job_postings/search": {"json": {"data": [], "meta": {"total_count": 0, "total_pages": 0}}}},
+    "jobs": []
+  },
+  {
+    "name": "목록 형식 변경",
+    "cfg": {"keywords": ["백엔드"]},
+    "responses": {"https://career-api.rememberapp.co.kr/job_postings/search": {"json": {"postings": [], "meta": {"total_pages": 1}}}},
+    "error": "ShapeError"
+  }
+]}
