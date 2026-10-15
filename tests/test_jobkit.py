@@ -55,6 +55,16 @@ class Filters(unittest.TestCase):
         with self.assertRaises(ValueError):        # sources.yaml 주소가 틀린 것: 응답 형식 변경(ShapeError)이 아니다
             K.url_part(r"/boards/([^/]+)", "https://a.example/x", 1)
 
+    def test_url_key(self):
+        """LinkedIn 은 제목 조각이 달라도 공고 번호가 같으면 같은 공고 (#69). 다른 주소는 그대로."""
+        old = "https://kr.linkedin.com/jobs/view/devops-engineer-1%7E3%EB%85%84-at-ganada-inc-4469435378"
+        self.assertEqual(K.url_key(old), "linkedin:4469435378")
+        self.assertEqual(K.url_key("https://www.linkedin.com/jobs/view/devops-engineer-0%7E3%EB%85%84-at-ganada-4469435378?trk=x"),
+                         "linkedin:4469435378")
+        self.assertEqual(K.url_key("https://www.linkedin.com/jobs/view/4469435378/"), "linkedin:4469435378")
+        self.assertNotEqual(K.url_key(old), K.url_key(old[:-1] + "9"))
+        self.assertEqual(K.url_key("https://a.example/jobs/view/12345678"), "https://a.example/jobs/view/12345678")
+
 
 class Companies(unittest.TestCase):
     def setUp(self):

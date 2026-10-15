@@ -159,6 +159,13 @@ def url_part(pattern: str, url: str, group: int = 0) -> str:
     return m.group(group)
 
 
+def url_key(url: str) -> str:
+    """같은 공고인지 비교할 때 쓰는 주소 열쇠. LinkedIn 은 공고 내용이 바뀌면 주소의 제목·회사 조각도 바꾸지만
+    끝의 공고 번호는 그대로라 linkedin:{번호} 로 맞춘다. 그 밖의 주소는 그대로. 기록하는 주소는 바꾸지 않는다."""
+    m = re.search(r"linkedin\.com/jobs/view/(?:[^/?#]*?-)?(\d{8,})(?:[/?#]|$)", url or "")
+    return f"linkedin:{m.group(1)}" if m else url
+
+
 class Partial(list):
     """일부만 받은 collect 결과 (예: 요청 제한으로 멈춤). 받은 공고는 그대로 쓰고, why 는 수집 보고에 남긴다."""
 

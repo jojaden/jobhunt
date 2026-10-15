@@ -50,6 +50,19 @@ class Add(unittest.TestCase):
         self.assertIn("- Go 3년 이상", K.read_text(body))
         self.assertNotIn("busan", md)
 
+    def test_linkedin_slug(self):
+        """LinkedIn 이 주소의 제목 조각만 바꾼 공고는 이미 본 공고다 (#69)."""
+        K.append_history([dict(url="https://kr.linkedin.com/jobs/view/devops-1%7E3-at-ganada-4469435378", company="가나다",
+                               title="DevOps (1~3년)", status="added")])
+        path = os.path.join(TMP, "found.yaml")
+        with open(path, "w", encoding="utf-8") as f:
+            yaml.safe_dump([dict(url="https://kr.linkedin.com/jobs/view/devops-0%7E3-at-ganada-4469435378", company="가나다",
+                                 title="DevOps (0~3년)", source="linkedin")], f, allow_unicode=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(scan.main(["--add", path]), 0)
+        self.assertEqual(len(K.read_history()), 1)
+        self.assertNotIn("4469435378", K.read_text(K.P["pipeline"]))
+
     def test_near_flag(self):
         """다른 사이트의 비슷한 공고는 거르지 않고 줄과 본문에 표시한다. "(주)" 만 같은 다른 회사는 표시도 안 한다 (#56)."""
         with open(K.P["pipeline"], "a", encoding="utf-8") as f:

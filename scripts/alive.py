@@ -70,9 +70,9 @@ def run(targets):
     """주소마다 한 번. 사이트마다 줄 하나로 차례로 확인하고 사이트끼리는 동시에 한다 (요청 간격은 jobkit.http_get 이 지킨다)."""
     first = {}
     for t in targets:
-        first.setdefault(t["url"], t)
+        first.setdefault(K.url_key(t["url"]), t)   # LinkedIn 은 주소 조각이 달라도 같은 공고면 한 번
     lanes = {}
-    for u in first:
+    for u in (t["url"] for t in first.values()):
         lanes.setdefault(K.site(urlsplit(u).netloc), []).append(u)
     pool = ThreadPoolExecutor(max(len(lanes), 1))
     try:
@@ -83,7 +83,7 @@ def run(targets):
         os._exit(130)
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
-    return [dict(t, alive=got[u][0], how=got[u][1]) for u, t in first.items()]
+    return [dict(t, alive=got[t["url"]][0], how=got[t["url"]][1]) for t in first.values()]
 
 
 def main(argv=None):

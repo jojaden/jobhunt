@@ -147,6 +147,18 @@ class Apply(unittest.TestCase):
         self.assertIn(f"## 제외 (재채점 {today})\n\n- [x] https://a.example/3 | 가상 | 가상 | FAIL (재채점 {today}, 이전 PASS 3.8)", md)
         self.assertNotIn("선별 전 | 가상", md)
 
+    def test_linkedin_slug(self):
+        """제외에 있는 LinkedIn 공고는 주소의 제목 조각이 달라도 같은 공고로 보고 건너뛴다 (#69)."""
+        with open(K.P["pipeline"], "w", encoding="utf-8") as f:
+            f.write("# 공고 대기함\n\n## 새로 수집 (선별 전)\n\n## 제외 (선별 2026-09-29)\n\n"
+                    "- [x] https://kr.linkedin.com/jobs/view/devops-1-at-ganada-4469435378 | 가나다 | DevOps | FAIL | 가상\n")
+        path = os.path.join(TMP, "apply_li.yaml")
+        with open(path, "w", encoding="utf-8") as f:
+            yaml.safe_dump(j(url="https://kr.linkedin.com/jobs/view/devops-0-at-ganada-4469435378", company="가나다", title="DevOps",
+                             gates={}), f, allow_unicode=True)
+        self.assertIn("건너뜀 1", S.apply([path]))
+        self.assertNotIn("devops-0", K.read_text(K.P["pipeline"]))
+
 
 if __name__ == "__main__":
     unittest.main()
