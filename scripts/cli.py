@@ -51,7 +51,8 @@ def version() -> str:
         dist = metadata.distribution("jobhunt")
     except metadata.PackageNotFoundError:        # 저장소에서 설치 없이 돌 때
         with open(os.path.join(os.path.dirname(HERE), "pyproject.toml"), encoding="utf-8") as f:
-            return re.search(r'^version = "([^"]+)"', f.read(), re.M).group(1)
+            m = re.search(r'^version = "([^"]+)"', f.read(), re.M)
+            return m.group(1) if m else "?"
     commit = (json.loads(dist.read_text("direct_url.json") or "{}").get("vcs_info") or {}).get("commit_id", "")
     return dist.version + (f" ({commit[:7]})" if commit else "")
 
@@ -61,7 +62,7 @@ def changes(res: str, since: str) -> str:
     with open(os.path.join(res, "CHANGELOG.md"), encoding="utf-8") as f:
         secs = re.split(r"\n(?=## )", f.read())[1:]
     since = since.lstrip("v")
-    out = []
+    out: list[str] = []
     for s in secs:
         if since and re.match(rf"## v{re.escape(since)}\b", s):
             return "\n".join(out)

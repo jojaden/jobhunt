@@ -68,7 +68,7 @@ def config() -> dict:
 def _met(x) -> str:
     """YAML 1.1 은 yes/no 를 참/거짓으로 읽는다. 문자열로 되돌린다."""
     v = x.get("met")
-    return {True: "yes", False: "no"}.get(v, v) if isinstance(v, bool) else str(v)
+    return ("yes" if v else "no") if isinstance(v, bool) else str(v)
 
 
 def _avg(xs, default):
@@ -178,7 +178,7 @@ def init(path: str) -> dict:
     text = K.read_text(path) or ""
     head = re.search(r"^# (.+?) — (.+)$", text, re.M)
     url = re.search(r"^- URL: (\S+)", text, re.M)
-    out = dict(url=url.group(1) if url else "", company=head.group(1) if head else "", title=head.group(2) if head else "",
+    out: dict = dict(url=url.group(1) if url else "", company=head.group(1) if head else "", title=head.group(2) if head else "",
                source=path, gates=dict(location="", language="", stack="", years="", employment="", comp=""),
                gate_note="", work=[], required=[], preferred=[], direction=dict(primary="", secondary=[]),
                domain_new="", signals=[], priority=False, review={}, note="")
@@ -198,7 +198,7 @@ def init(path: str) -> dict:
             if len(item) > 3:
                 out[cur].append({"line": item, **({"fit": ""} if cur == "work" else {"met": ""}), **({"key": False} if cur == "preferred" else {})})
     known = ((K.load_yaml(K.P["targets"]) or {}).get("gates") or {}).get("stack_languages")
-    known = [known] if isinstance(known, str) else known
+    known = [known] if isinstance(known, str) else (known or [])
     hit = stack_draft(out["required"], known)
     if hit:
         out["gates"]["stack"] = "fail"
@@ -234,7 +234,7 @@ PENDING, WAIT = "## 새로 수집 (선별 전)", "## 대기"
 
 def _sections(md: str):
     """[(제목, [줄])] — 제목 없는 머리말은 ("", 줄)."""
-    out = [("", [])]
+    out: list[tuple[str, list[str]]] = [("", [])]
     for line in md.split("\n"):
         if line.startswith("## "):
             out.append((line, []))
@@ -257,7 +257,9 @@ def apply(files) -> str:
                     old[m.group(0)] = l
     targets = K.load_yaml(K.P["targets"]) or {}
     cool = K.cooldown_companies(int(targets.get("reapply_days", 183)))
-    new_wait, new_fail, n = [], {}, 0
+    new_wait: list[tuple[float, str]] = []
+    new_fail: dict[str, list[str]] = {}
+    n = 0
     touched = set()
     for f in files:
         j = K.load_yaml(f)
@@ -269,7 +271,8 @@ def apply(files) -> str:
         was = f", 이전 {prev.group(1)} {prev.group(2) or ''}".rstrip() if prev else ""
         kind = "재채점" if prev else "선별"        # 대기에 있던 줄을 다시 매기면 재채점, 선별 전이거나 처음이면 선별
         src = K.read_text(os.path.join(K.ROOT, j.get("source", ""))) if j.get("source") else ""
-        loc = (re.search(r"^- 근무지: (.*)$", src, re.M) or [None, "?"])[1].strip() or "?"
+        m = re.search(r"^- 근무지: (.*)$", src, re.M)
+        loc = (m.group(1).strip() if m else "") or "?"
         rel = os.path.relpath(f, K.ROOT)
         hit = K.company_in(j.get("company", ""), cool, exact=True)
         if hit:                                   # 지원한 회사는 쿨다운 동안 대기에 두지 않는다

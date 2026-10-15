@@ -8,13 +8,13 @@ import json
 import re
 from typing import List, Optional
 
-from jobkit import Job, ShapeError, html_text, http_get
+from jobkit import Job, ShapeError, html_text, http_get, url_part
 
 API = "https://api.lever.co/v0/postings"
 
 
 def site_of(url: str) -> str:
-    return re.search(r"(?:api\.lever\.co/v0/postings|jobs\.lever\.co)/([^/?#]+)", url).group(1)
+    return url_part(r"(?:api\.lever\.co/v0/postings|jobs\.lever\.co)/([^/?#]+)", url, 1)
 
 
 def collect(cfg: dict) -> List[Job]:

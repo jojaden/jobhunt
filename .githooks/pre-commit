@@ -2,6 +2,7 @@
 # 커밋 전 검사. 켜기: git config core.hooksPath .githooks   (급할 때 건너뛰기: git commit --no-verify)
 #   1. 개인 자료 (scripts/privacy_check.py)
 #   2. ruff 린트 — ruff 가 설치돼 있을 때만, 커밋하는 파이썬 파일에 (규칙: ruff.toml)
+#   3. mypy 타입 검사 — mypy 가 설치돼 있고 파이썬 파일을 커밋할 때만, scripts/ 전체를 (설정: mypy.ini)
 top="$(git rev-parse --show-toplevel)"
 python3 "$top/scripts/privacy_check.py" --staged || exit 1
 if command -v ruff >/dev/null 2>&1; then
@@ -9,4 +10,7 @@ if command -v ruff >/dev/null 2>&1; then
   if [ -n "$files" ]; then
     (cd "$top" && ruff check $files) || exit 1
   fi
+fi
+if command -v mypy >/dev/null 2>&1 && [ -n "$(git diff --cached --name-only --diff-filter=ACMR -- '*.py')" ]; then
+  (cd "$top" && mypy) || exit 1
 fi

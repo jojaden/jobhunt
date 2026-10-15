@@ -271,7 +271,7 @@ def _match(tpl: str, url: str) -> Optional[dict]:
     m = re.fullmatch(rx, url)
     if not m:
         return None
-    out = {}
+    out: dict = {}
     for i, name in enumerate(parts[1::2]):
         node = out
         keys = name.split(".")

@@ -10,14 +10,14 @@ import json
 import re
 from typing import List, Optional
 
-from jobkit import Job, ShapeError, html_text, http_get
+from jobkit import Job, ShapeError, html_text, http_get, url_part
 
 API = "https://recruit-api.gabiaoffice.hiworks.com/v1/career-site"
 _VIEW = re.compile(r"^(https?://[^/]+)/recruit/view/([a-z0-9]{6})/?$")
 
 
 def _domain(url: str) -> str:
-    host = re.match(r"https?://([^/]+)", url).group(1)
+    host = url_part(r"^https?://([^/]+)", url, 1)
     return host.split(".", 1)[1] if host.count(".") > 1 else host       # recruit.gabia.com → gabia.com
 
 
@@ -41,7 +41,7 @@ def _office(domain: str) -> str:
 
 
 def collect(cfg: dict) -> List[Job]:
-    base = re.match(r"https?://[^/]+", cfg["careers_url"]).group(0)
+    base = url_part(r"^https?://[^/]+", cfg["careers_url"])
     domain = cfg.get("hiworks_domain") or _domain(cfg["careers_url"])
     office = _office(domain)
     jobs = []
@@ -54,9 +54,8 @@ def collect(cfg: dict) -> List[Job]:
 
 
 def _detail(url: str):
-    m = _VIEW.match(url)
     domain = _domain(url)
-    return _get(f"/offices/{_office(domain)}/announces/{m.group(2)}", domain)
+    return _get(f"/offices/{_office(domain)}/announces/{url_part(_VIEW.pattern, url, 2)}", domain)
 
 
 def detail(job: Job) -> str:

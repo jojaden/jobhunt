@@ -4,13 +4,13 @@ import re
 from typing import List, Optional
 from urllib.parse import urlparse
 
-from jobkit import P, Job, ShapeError, get_json, http_get, html_text, load_yaml
+from jobkit import P, Job, ShapeError, get_json, http_get, html_text, load_yaml, url_part
 
 API = "https://boards-api.greenhouse.io/v1/boards"
 
 
 def board_of(api_url: str) -> str:
-    return re.search(r"/boards/([^/]+)", api_url).group(1)
+    return url_part(r"/boards/([^/]+)", api_url, 1)
 
 
 def collect(cfg: dict) -> List[Job]:

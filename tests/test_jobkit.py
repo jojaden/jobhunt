@@ -50,6 +50,11 @@ class Filters(unittest.TestCase):
         self.assertEqual(K.html_text("<p>가&amp;나</p><ul><li>하나</li><li>둘</li></ul>"), "가&나\n• 하나\n• 둘")
         self.assertEqual(K.html_text(None), "")
 
+    def test_url_part(self):
+        self.assertEqual(K.url_part(r"^https?://([^/]+)", "https://a.example/x", 1), "a.example")
+        with self.assertRaises(ValueError):        # sources.yaml 주소가 틀린 것: 응답 형식 변경(ShapeError)이 아니다
+            K.url_part(r"/boards/([^/]+)", "https://a.example/x", 1)
+
 
 class Companies(unittest.TestCase):
     def setUp(self):
