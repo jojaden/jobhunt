@@ -21,6 +21,7 @@ import json
 import os
 import re
 import sys
+from typing import Dict, List, TypedDict, Union, cast
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -58,6 +59,54 @@ _SOFT = r"우대|좋아요|좋습니다|더\s*좋|이면\s*좋|키울\s*수|plus
 _NEED = r"경험|경력|능숙|능통|숙련|숙달|익숙|이해|역량|활용|가능\s*하|개발|운영|다뤄|사용해|사용\s*언어|experience|proficien|familiar|fluent|expert|knowledge|skilled|strong"
 
 
+class Line(TypedDict, total=False):
+    """판정 파일의 한 줄 (work · required · preferred). work 는 fit, 나머지는 met 을 쓴다."""
+    line: str
+    fit: str                  # work: done · adjacent · new
+    met: Union[str, bool]     # yes · partial · no (YAML 1.1 은 yes/no 를 참/거짓으로 읽는다, _met)
+    gap: str                  # required 의 no: bridge · core
+    alt: bool                 # core 빈틈이지만 '이에 준하는 경험' 인정
+    key: bool                 # preferred: 이 포지션의 핵심 기술
+    why: str
+
+
+class Direction(TypedDict, total=False):
+    primary: str              # targets.yaml scoring 의 prefer_work · avoid_work 키, 아니면 other
+    secondary: List[str]
+
+
+class Review(TypedDict, total=False):
+    delta: float
+    why: str
+
+
+class Judgment(TypedDict, total=False):
+    """판정 파일 (references/scoring.md "Judgment file"). 에이전트가 쓰는 yaml 이라 빠진 키가 있을 수 있다."""
+    url: str
+    company: str
+    title: str
+    source: str               # 본문 파일 (data/search/inbox/…)
+    gates: Dict[str, str]     # location · language · stack · years · employment · comp → pass · fail · unclear
+    gate_note: str
+    work: List[Line]
+    required: List[Line]
+    preferred: List[Line]
+    direction: Direction
+    domain_new: str
+    signals: List[str]
+    priority: bool
+    review: Review
+    note: str
+    judged: str
+    draft: str                # score init 이 채운 stack 관문 초안 표시
+    rule: str                 # golden set 정답만: 이 사례가 확인하는 규칙
+    expect: str               # golden set 정답만: 기대 판정
+
+
+def load_judgment(path: str) -> Judgment:
+    return cast(Judgment, K.load_yaml(path))
+
+
 def config() -> dict:
     t = K.load_yaml(K.P["targets"]) or {}
     if "scoring" not in t:
@@ -65,7 +114,7 @@ def config() -> dict:
     return t.get("scoring") or {}
 
 
-def _met(x) -> str:
+def _met(x: Line) -> str:
     """YAML 1.1 은 yes/no 를 참/거짓으로 읽는다. 문자열로 되돌린다."""
     v = x.get("met")
     return ("yes" if v else "no") if isinstance(v, bool) else str(v)
@@ -75,7 +124,7 @@ def _avg(xs, default):
     return sum(xs) / len(xs) if xs else default
 
 
-def score(j: dict, cfg: dict) -> dict:
+def score(j: Judgment, cfg: dict) -> dict:
     """판정 dict → {total, verdict, triage, parts, caps, gate}"""
     gates = j.get("gates") or {}
     failed = [k for k, v in gates.items() if v == "fail"]
@@ -149,7 +198,7 @@ def score(j: dict, cfg: dict) -> dict:
                 band=f"{name} {lo}–{hi}: {band_why}")
 
 
-def band(req_items, pref_items, work_items):
+def band(req_items: List[Line], pref_items: List[Line], work_items: List[Line]):
     """필수·우대 충족도 → (등급, 하한, 상한, 이유). 공통 기준이라 개인 설정을 읽지 않는다."""
     req_no = [x for x in req_items if _met(x) not in REQ]
     keys = [x for x in pref_items if x.get("key")]
@@ -173,15 +222,16 @@ def band(req_items, pref_items, work_items):
     return ("C", 1.0, 3.9, "우대 절반 미만")
 
 
-def init(path: str) -> dict:
+def init(path: str) -> Judgment:
     """본문에서 주요업무·자격요건·우대사항 줄을 뽑아 판정 뼈대를 만든다. 분류(fit·met·gap·type)는 비워 둔다."""
     text = K.read_text(path) or ""
     head = re.search(r"^# (.+?) — (.+)$", text, re.M)
     url = re.search(r"^- URL: (\S+)", text, re.M)
-    out: dict = dict(url=url.group(1) if url else "", company=head.group(1) if head else "", title=head.group(2) if head else "",
-               source=path, gates=dict(location="", language="", stack="", years="", employment="", comp=""),
-               gate_note="", work=[], required=[], preferred=[], direction=dict(primary="", secondary=[]),
-               domain_new="", signals=[], priority=False, review={}, note="")
+    lines: Dict[str, List[Line]] = dict(work=[], required=[], preferred=[])
+    out = Judgment(url=url.group(1) if url else "", company=head.group(1) if head else "", title=head.group(2) if head else "",
+                   source=path, gates=dict(location="", language="", stack="", years="", employment="", comp=""),
+                   gate_note="", work=lines["work"], required=lines["required"], preferred=lines["preferred"],
+                   direction=Direction(primary="", secondary=[]), domain_new="", signals=[], priority=False, review={}, note="")
     cur = None
     for raw in text.split("\n"):
         line = raw.strip()
@@ -196,7 +246,7 @@ def init(path: str) -> dict:
         if cur:
             item = re.sub(r"^([•·\-*▪◦・●○]|\d+[.)])\s*", "", line)
             if len(item) > 3:
-                out[cur].append({"line": item, **({"fit": ""} if cur == "work" else {"met": ""}), **({"key": False} if cur == "preferred" else {})})
+                lines[cur].append(cast(Line, {"line": item, **({"fit": ""} if cur == "work" else {"met": ""}), **({"key": False} if cur == "preferred" else {})}))
     known = ((K.load_yaml(K.P["targets"]) or {}).get("gates") or {}).get("stack_languages")
     known = [known] if isinstance(known, str) else (known or [])
     hit = stack_draft(out["required"], known)
@@ -262,7 +312,7 @@ def apply(files) -> str:
     n = 0
     touched = set()
     for f in files:
-        j = K.load_yaml(f)
+        j = load_judgment(f)
         url = j.get("url")
         if not url or url in elsewhere:
             continue
@@ -277,7 +327,8 @@ def apply(files) -> str:
         hit = K.company_in(j.get("company", ""), cool, exact=True)
         if hit:                                   # 지원한 회사는 쿨다운 동안 대기에 두지 않는다
             r = dict(r, triage="FAIL")
-            j = dict(j, gate_note=f"재지원 쿨다운 ~{cool[hit]} (점수 {r['total']})")
+            j = j.copy()
+            j["gate_note"] = f"재지원 쿨다운 ~{cool[hit]} (점수 {r['total']})"
         if r["triage"] == "FAIL":
             why = j.get("gate_note") or j.get("note") or ""
             new_fail.setdefault(kind, []).append(f"- [x] {url} | {j.get('company')} | {j.get('title')} | FAIL {r['total'] or ''} ({kind} {today}{was}) | {why}".replace("FAIL  (", "FAIL ("))
@@ -346,7 +397,7 @@ def main(argv=None):
     if not a.json:
         print("| 회사 | 포지션 | 점수 | 판정 | 항목별 | 근거 |\n|---|---|---|---|---|---|")
     for f in a.files:
-        j = K.load_yaml(f)
+        j = load_judgment(f)
         r = score(j, cfg)
         print(json.dumps(dict(file=f, url=j.get("url"), **r), ensure_ascii=False) if a.json else _row(j, r))
     return 0

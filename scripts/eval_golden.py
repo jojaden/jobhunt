@@ -21,6 +21,7 @@ import glob
 import os
 import re
 import sys
+from typing import List
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -30,11 +31,11 @@ import score as S  # noqa: E402
 FIELDS = {"work": ("fit",), "required": ("met", "gap", "alt"), "preferred": ("met", "key")}
 
 
-def _norm(line: str) -> str:
+def _norm(line: str | None) -> str:
     return re.sub(r"[^0-9a-z가-힣]", "", str(line).lower())
 
 
-def _value(x: dict, f: str):
+def _value(x: S.Line, f: str):
     if f == "met":
         return S._met(x)
     if f in ("alt", "key"):
@@ -44,16 +45,20 @@ def _value(x: dict, f: str):
     return x.get(f)
 
 
-def compare(want: dict, got: dict, cfg: dict) -> dict:
+def _lines(j: S.Judgment, sec: str) -> List[S.Line]:
+    return dict(work=j.get("work"), required=j.get("required"), preferred=j.get("preferred")).get(sec) or []
+
+
+def compare(want: S.Judgment, got: S.Judgment, cfg: dict) -> dict:
     """정답 판정 ↔ 에이전트 판정 → {lines, agree, diffs, verdict}."""
     diffs, lines, agree = [], 0, 0
     fails = lambda j: sorted(k for k, v in (j.get("gates") or {}).items() if v == "fail")   # noqa: E731
     if fails(want) != fails(got):
         diffs.append(f"조건 fail: 정답 {fails(want) or '없음'} · 판정 {fails(got) or '없음'}")
     for sec, fields in FIELDS.items():
-        mine = {_norm(x.get("line")): x for x in got.get(sec) or []}
+        mine = {_norm(x.get("line")): x for x in _lines(got, sec)}
         seen = set()
-        for x in want.get(sec) or []:
+        for x in _lines(want, sec):
             key = _norm(x.get("line"))
             lines += 1
             y = mine.get(key)
@@ -84,12 +89,12 @@ def run(folder: str, golden: str):
     out = []
     for path in sorted(glob.glob(os.path.join(golden, "answers", "*.yaml"))):
         name = os.path.basename(path)
-        want = K.load_yaml(path)
+        want = S.load_judgment(path)
         mine = os.path.join(folder, name)
         if not os.path.exists(mine):
             out.append(dict(name=name, missing=True, rule=want.get("rule", "")))
             continue
-        out.append(dict(name=name, missing=False, rule=want.get("rule", ""), **compare(want, K.load_yaml(mine), cfg)))
+        out.append(dict(name=name, missing=False, rule=want.get("rule", ""), **compare(want, S.load_judgment(mine), cfg)))
     return out
 
 

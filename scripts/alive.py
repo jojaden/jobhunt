@@ -27,16 +27,8 @@ OPEN_SECTIONS = ("## 새로 수집 (선별 전)", "## 대기")
 
 
 def pipeline_targets():
-    out, sec = [], None
-    for line in K.read_text(K.P["pipeline"]).split("\n"):
-        if line.startswith("## "):
-            sec = line.strip()
-        elif sec in OPEN_SECTIONS and line.lstrip().startswith("- [ ]"):
-            m = K.URL_RE.search(line)
-            if m:
-                c = [x.strip() for x in line.split(" | ")]
-                out.append(dict(url=m.group(0), company=c[1] if len(c) > 1 else "", title=c[2] if len(c) > 2 else "", where="pipeline"))
-    return out
+    return [dict(url=r.url, company=r.company, title=r.title, where="pipeline")
+            for r in K.read_pipeline() if r.section in OPEN_SECTIONS and r.mark == " " and r.url]
 
 
 def eval_url(link: str) -> str:

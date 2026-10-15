@@ -17,7 +17,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, NamedTuple, Optional, Set, TypedDict, cast
 from urllib.parse import urlsplit
 
 import yaml
@@ -51,8 +51,25 @@ P = dict(
     checks=os.path.join(DATA, "search", "manual-checks.yaml"),   # 스크립트가 못 도는 채널을 손으로 확인한 결과
     tracker=os.path.join(DATA, "applications", "tracker.md"),
 )
-HISTORY_COLS = ["url", "first_seen", "portal", "title", "company", "status", "location",
-                "fingerprint", "posted_at", "trust_score", "trust_flags", "normalized_company"]
+
+
+class HistoryRow(TypedDict, total=False):
+    """scan-history.tsv 한 줄. 읽은 줄은 모든 칸이 글자(빈 칸은 ""), 쓸 때는 없는 칸을 비워 둔다."""
+    url: str
+    first_seen: str
+    portal: str
+    title: str
+    company: str
+    status: str
+    location: str
+    fingerprint: str
+    posted_at: str
+    trust_score: str
+    trust_flags: str
+    normalized_company: str
+
+
+HISTORY_COLS = list(HistoryRow.__annotations__)   # 파일의 열 순서
 TODAY = date.today().isoformat()
 
 
@@ -284,19 +301,19 @@ def stack_hint(text: str) -> str:
 
 
 # ── 파일 ──────────────────────────────────────────────
-def read_history() -> List[dict]:
+def read_history() -> List[HistoryRow]:
     if not os.path.exists(P["history"]):
         return []
-    rows = []
+    rows: List[HistoryRow] = []
     with open(P["history"], encoding="utf-8") as f:
         head = f.readline().rstrip("\n").split("\t")
         for line in f:
             v = line.rstrip("\n").split("\t")
-            rows.append(dict(zip(head, v + [""] * (len(head) - len(v)))))
+            rows.append(cast(HistoryRow, dict(zip(head, v + [""] * (len(head) - len(v))))))
     return rows
 
 
-def append_history(rows: List[dict]):
+def append_history(rows: List[HistoryRow]):
     new = not os.path.exists(P["history"])
     with open(P["history"], "a", encoding="utf-8") as f:
         if new:
@@ -362,13 +379,19 @@ def dup_keys(company: str, title: str) -> set:
     return {(c, t) for c in cos}
 
 
-def near_key(company: str, title: str, url: str) -> tuple:
-    """near_dup 비교용 (회사 후보, 포지션, 사이트). 사이트는 호스트로 본다 (점핏·사람인처럼 등록 도메인이 같아도 다른 사이트)."""
+class NearKey(NamedTuple):
+    """near_dup 비교용 공고 열쇠."""
+    companies: Set[str]   # 회사 이름 후보 (_companies)
+    title: str            # 비교용 포지션 (_title)
+    site: str             # 호스트 (점핏·사람인처럼 등록 도메인이 같아도 다른 사이트)
+
+
+def near_key(company: str, title: str, url: str) -> NearKey:
     cos = _companies(company)
-    return cos, _title(_strip_tag(company, title, cos)), urlsplit(url).netloc.lower().removeprefix("www.")
+    return NearKey(cos, _title(_strip_tag(company, title, cos)), urlsplit(url).netloc.lower().removeprefix("www."))
 
 
-def near_dup(a: tuple, b: tuple) -> float:
+def near_dup(a: NearKey, b: NearKey) -> float:
     """dup_keys 로는 다르지만 같은 공고일 수 있는 정도 (0 = 아님). 다른 사이트끼리만 보고, 거르지 않고 표시만 한다.
     같은 회사면 포지션 유사도 0.9 이상 ("[경력] Backend Engineer (빗썸페이)" ↔ "Backend Engineer (빗썸페이)"),
     다른 회사면 포지션이 같고 회사 이름 앞 두 글자가 같을 때 (계열사 "토스" ↔ "토스페이먼츠", 바뀐 이름 "나무기술" ↔ "나무에이엑스").
@@ -382,16 +405,44 @@ def near_dup(a: tuple, b: tuple) -> float:
     return 1 if ta == tb and any(len(x) > 1 and x[:2] == y[:2] for x in ca for y in cb) else 0
 
 
+class PipelineRow(NamedTuple):
+    """pipeline.md 체크리스트 한 줄 ("- [ ] 주소 | 회사 | 포지션 | …"). 칸 수와 셋째 칸 뒤의 뜻은 섹션마다 다르다."""
+    section: str        # 이 줄이 든 "## " 제목 줄 (앞이면 "")
+    mark: str           # 체크 상자 안 글자: " " 선별 전·대기, "x" 제외, "-" 지원함
+    url: str            # 첫 칸의 주소 (없으면 "")
+    cells: List[str]    # " | " 로 나눈 칸. 0 은 체크 상자를 뗀 첫 칸
+    line: str
+
+    def cell(self, i: int) -> str:
+        return self.cells[i] if len(self.cells) > i else ""
+
+    @property
+    def company(self) -> str:
+        return self.cell(1)
+
+    @property
+    def title(self) -> str:
+        return self.cell(2)
+
+
+def read_pipeline(md: Optional[str] = None) -> List[PipelineRow]:
+    """pipeline.md (또는 주어진 글) 의 체크리스트 줄. 칸을 읽는 곳은 모두 여기를 거친다."""
+    rows, sec = [], ""
+    for line in (read_text(P["pipeline"]) if md is None else md).split("\n"):
+        if line.startswith("## "):
+            sec = line.strip()
+            continue
+        m = re.match(r"\s*- \[(.)\]", line)
+        if m:
+            c = [x.strip() for x in line[m.end():].split(" | ")]
+            u = URL_RE.search(c[0])
+            rows.append(PipelineRow(sec, m.group(1), u.group(0) if u else "", c, line))
+    return rows
+
+
 def pipeline_rows() -> List[tuple]:
     """pipeline.md 체크리스트 줄의 (URL, 회사, 포지션)."""
-    rows = []
-    for line in read_text(P["pipeline"]).split("\n"):
-        if line.lstrip().startswith("- ["):
-            c = [x.strip() for x in line.split(" | ")]
-            m = URL_RE.search(c[0])
-            if len(c) > 2:
-                rows.append((m.group(0) if m else "", c[1], c[2]))
-    return rows
+    return [(r.url, r.company, r.title) for r in read_pipeline() if len(r.cells) > 2]
 
 
 def pipeline_keys() -> set:
@@ -430,18 +481,32 @@ STATES = ["평가함", "지원함", "서류합격", "면접", "최종합격", "�
 TRACKER_HEAD = "| # | 날짜 | 회사 | 포지션 | 점수 | 상태 | PDF | 평가 | 메모 |"
 
 
-def read_tracker() -> List[dict]:
-    rows = []
+class TrackerRow(TypedDict):
+    """tracker.md 표 한 줄 (TRACKER_HEAD). raw 는 읽은 줄 그대로."""
+    num: int
+    date: str
+    company: str
+    role: str
+    score: str
+    state: str
+    pdf: str
+    eval: str
+    memo: str
+    raw: str
+
+
+def read_tracker() -> List[TrackerRow]:
+    rows: List[TrackerRow] = []
     for line in read_text(P["tracker"]).split("\n"):
         if not re.match(r"\|\s*\d+\s*\|", line):
             continue
         c = [x.strip() for x in line.strip().strip("|").split("|")]
-        rows.append(dict(num=int(c[0]), date=c[1], company=c[2], role=c[3], score=c[4], state=c[5],
-                         pdf=c[6], eval=c[7], memo="|".join(c[8:]).strip(), raw=line))
+        rows.append(TrackerRow(num=int(c[0]), date=c[1], company=c[2], role=c[3], score=c[4], state=c[5],
+                               pdf=c[6], eval=c[7], memo="|".join(c[8:]).strip(), raw=line))
     return rows
 
 
-def tracker_line(r: dict) -> str:
+def tracker_line(r: TrackerRow) -> str:
     return (f"| {r['num']} | {r['date']} | {r['company']} | {r['role']} | {r['score']} | {r['state']} | "
             f"{r['pdf']} | {r['eval']} | {r['memo']} |")
 
