@@ -155,6 +155,19 @@ class Files(unittest.TestCase):
         self.assertEqual([r["url"] for r in rows], ["https://a.example/1", "https://a.example/2"])
         self.assertEqual(rows[0]["title"], "탭 있는 제목")
         self.assertEqual(set(rows[1]), set(K.HISTORY_COLS))
+        self.assertEqual(K.HISTORY_COLS, ["url", "first_seen", "portal", "title", "company", "status", "location",   # 파일 열 순서
+                                          "fingerprint", "posted_at", "trust_score", "trust_flags", "normalized_company"])
+
+    def test_read_pipeline(self):
+        md = ("머리말\n- [ ] https://a.example/0 | 머리\n## 새로 수집 (선별 전)\n\n"
+              "- [ ] https://a.example/1 | 가나다랩 | 백엔드 | 서울 | 선별 전 | wanted · 2026-10-15 · 마감 ?\n"
+              "## 대기\n\n  - [x] https://a.example/2 | 라바소 | SRE | FAIL\n- [ ] 주소 없음 | 다라마\n- [링크](https://c.example) 메모\n")
+        rows = K.read_pipeline(md)
+        self.assertEqual([(r.section, r.mark, r.url) for r in rows],
+                         [("", " ", "https://a.example/0"), ("## 새로 수집 (선별 전)", " ", "https://a.example/1"),
+                          ("## 대기", "x", "https://a.example/2"), ("## 대기", " ", "")])
+        self.assertEqual((rows[1].company, rows[1].title, rows[1].cell(5), rows[1].cell(9)), ("가나다랩", "백엔드", "wanted · 2026-10-15 · 마감 ?", ""))
+        self.assertEqual((rows[0].title, rows[3].cells), ("", ["주소 없음", "다라마"]))
 
 
 class Http(unittest.TestCase):

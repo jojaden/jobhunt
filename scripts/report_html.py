@@ -44,17 +44,12 @@ def collect(today: date, since: str) -> dict:
     cfg = S.config()
     first = {h["url"]: h["first_seen"] for h in K.read_history()}
     rows = []
-    sec = None
-    for line in (K.read_text(K.P["pipeline"]) or "").split("\n"):
-        if line.startswith("## "):
-            sec = line.strip()
+    for p in K.read_pipeline():
+        if p.section != "## 대기" or p.mark != " ":
             continue
-        if sec != "## 대기" or not line.lstrip().startswith("- [ ]"):
-            continue
-        c = [x.strip() for x in line.lstrip()[5:].split(" | ")]
-        url = c[0]
+        url, line = p.cells[0], p.line
         jf = re.search(r"판정: (\S+\.yaml)", line)
-        j = K.load_yaml(jf.group(1)) if jf and os.path.exists(jf.group(1)) else {}
+        j = S.load_judgment(jf.group(1)) if jf and os.path.exists(jf.group(1)) else S.Judgment()
         r = S.score(j, cfg) if j else None
         total = r["total"] if r else None
         verdict = r["verdict"] if r else "확인 필요"
@@ -62,9 +57,9 @@ def collect(today: date, since: str) -> dict:
             verdict, total = "확인 필요", None
         seen = first.get(url, "")
         rows.append(dict(
-            url=url, company=c[1] if len(c) > 1 else "", title=re.sub(r"<[^>]+>", "", c[2] if len(c) > 2 else ""),
-            location=_short_loc(c[3] if len(c) > 3 else ""), score=total, verdict=verdict,
-            reason=(j.get("note") if j else "") or (c[5] if len(c) > 5 else ""),
+            url=url, company=p.company, title=re.sub(r"<[^>]+>", "", p.title),
+            location=_short_loc(p.cell(3)), score=total, verdict=verdict,
+            reason=(j.get("note") if j else "") or p.cell(5),
             parts={k: round(v, 1) for k, v in (r["parts"] if r else {}).items()},
             bonus=round(r.get("bonus", 0), 1) if r else 0, caps=(r["caps"] if r else []), band=(r.get("band", "") if r else ""),
             closes=_closes(j.get("source", "")) if j else "", seen=seen,
@@ -111,15 +106,10 @@ def _manual(pipe: str):
             l = l if isinstance(l, dict) else dict(title=l)
             leads.append(dict(company=BOARD_NAMES.get(n, n), title=l.get("title") or "", url=l.get("url") or "",
                               where=f"직접 확인 {k.get('checked') or ''}".strip(), why=l.get("why") or "공고 주소나 본문을 못 얻음"))
-    sec = None
-    for line in pipe.split("\n"):
-        if line.startswith("## "):
-            sec = line.strip()
-        elif sec == "## 새로 수집 (선별 전)" and line.lstrip().startswith("- [ ]"):
-            c = [x.strip() for x in line.lstrip()[5:].split(" | ")]
-            if len(c) > 5:
-                leads.append(dict(company=c[1], title=c[2], url=c[0], where=c[5].split(" · 마감")[0],
-                                  why="선별 전 — 본문을 아직 판정하지 않음"))
+    for p in K.read_pipeline(pipe):
+        if p.section == "## 새로 수집 (선별 전)" and p.mark == " " and len(p.cells) > 5:
+            leads.append(dict(company=p.company, title=p.title, url=p.cells[0], where=p.cells[5].split(" · 마감")[0],
+                              why="선별 전 — 본문을 아직 판정하지 않음"))
     return sites, leads
 
 

@@ -129,22 +129,14 @@ def cmd_report(a):
         rows.append((r["company"], r["role"], _loc(r["memo"]), r["score"], verdict(r["score"]) if r["state"] == "평가함" else r["state"],
                      applied, new, mark.get(alive.get(url), "?") if a.alive else "", re.sub(r"\s+", " ", r["memo"])[:70]))
 
-    sec = None
-    for line in K.read_text(K.P["pipeline"]).split("\n"):
-        if line.startswith("## "):
-            sec = line.strip()
+    for p in K.read_pipeline():
+        if p.section != "## 대기" or p.mark != " " or not p.url or p.url in done:
             continue
-        if sec != "## 대기" or not line.lstrip().startswith("- [ ]"):
-            continue
-        m = K.URL_RE.search(line)
-        if not m or m.group(0) in done:
-            continue
-        c = [x.strip() for x in line.split(" | ")]
-        tri = re.search(r"(PASS|MARGINAL|FAIL)\s*([\d.]+/5)?", line)
-        new = "✓" if a.since and first_seen.get(m.group(0), "0") >= a.since else ""
-        rows.append((c[1] if len(c) > 1 else "", c[2] if len(c) > 2 else "", c[3] if len(c) > 3 else "?",
-                     (tri.group(2) or "—") if tri else "—", _label(tri, line), "미지원", new,
-                     mark.get(alive.get(m.group(0)), "?") if a.alive else "", (c[5] if len(c) > 5 else "")[:70]))
+        tri = re.search(r"(PASS|MARGINAL|FAIL)\s*([\d.]+/5)?", p.line)
+        new = "✓" if a.since and first_seen.get(p.url, "0") >= a.since else ""
+        rows.append((p.company, p.title, p.cells[3] if len(p.cells) > 3 else "?",
+                     (tri.group(2) or "—") if tri else "—", _label(tri, p.line), "미지원", new,
+                     mark.get(alive.get(p.url), "?") if a.alive else "", p.cell(5)[:70]))
 
     order = {"지원 권장": 0, "지원 고려": 1, "1차 PASS": 2, "보류": 3, "1차 MARGINAL": 4, "확인 필요": 5}
     score = lambda x: -float(re.match(r"[\d.]+", x[3]).group(0)) if re.match(r"[\d.]+", x[3]) else 0
