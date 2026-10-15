@@ -126,7 +126,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     tf, lf = sources.get("title_filter") or {}, sources.get("location_filter") or {}
     cf = sources.get("career_filter") or {}
 
-    seen = {r["url"] for r in K.read_history()} | K.pipeline_urls()
+    seen = {K.url_key(r["url"]) for r in K.read_history()} | {K.url_key(u) for u in K.pipeline_urls()}
     tracked = {k for r in K.read_tracker() for k in K.dup_keys(r["company"], r["role"])} | K.pipeline_keys()
     near = [(K.near_key(c, t, u), (u, c, t)) for u, c, t in K.pipeline_rows()]   # 거르지 않고 표시만 하는 비교 대상
     cool = K.cooldown_companies(int(targets.get("reapply_days", 183)))
@@ -154,7 +154,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             for j in jobs:
                 status = None
                 keys = K.dup_keys(j.company, j.title)
-                url_seen = j.url in seen
+                url_seen = K.url_key(j.url) in seen
                 if url_seen or keys & tracked or keys & batch_keys:
                     status = "skipped_dup"      # 다른 사이트에 올라온 같은 공고도 URL은 기록해 둔다 (다음 실행에서 다시 안 나오게)
                 elif not a.add and K.title_ok(j.title, tf):
@@ -171,7 +171,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                     status = "seeded"
                 batch_keys |= keys
                 if not url_seen:
-                    seen.add(j.url)
+                    seen.add(K.url_key(j.url))
                     hist.append(K.HistoryRow(url=j.url, first_seen=K.TODAY, portal=j.source, title=j.title, company=j.company,
                                              status=status or "added", location=j.location, posted_at=j.posted_at,
                                              normalized_company=K.norm_company(j.company)))

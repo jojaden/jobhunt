@@ -300,14 +300,14 @@ def apply(files: List[str]) -> str:
     """판정 결과를 pipeline.md 에 반영한다. 선별 전·대기에 있던 줄과 아직 없는 공고만 바꾸고, 다른 섹션(지원 완료·마감·처리 완료)은 건드리지 않는다."""
     cfg, today = config(), K.TODAY
     secs = _sections(K.read_text(K.P["pipeline"]) or "# 공고 대기함\n")
-    elsewhere = {u for h, ls in secs if h and not h.startswith((PENDING, WAIT)) for l in ls for u in K.URL_RE.findall(l)}
+    elsewhere = {K.url_key(u) for h, ls in secs if h and not h.startswith((PENDING, WAIT)) for l in ls for u in K.URL_RE.findall(l)}
     old = {}
     for h, ls in secs:
         if h.startswith((PENDING, WAIT)):
             for l in ls:
                 m = K.URL_RE.search(l)
                 if m and l.lstrip().startswith("- ["):
-                    old[m.group(0)] = l
+                    old[K.url_key(m.group(0))] = l
     targets = K.load_yaml(K.P["targets"]) or {}
     cool = K.cooldown_companies(int(targets.get("reapply_days", 183)))
     new_wait: list[tuple[float, str]] = []
@@ -317,10 +317,10 @@ def apply(files: List[str]) -> str:
     for f in files:
         j = load_judgment(f)
         url = j.get("url")
-        if not url or url in elsewhere:
+        if not url or K.url_key(url) in elsewhere:
             continue
         r = score(j, cfg)
-        prev = re.search(r"triage: (PASS|MARGINAL|FAIL) ?([\d.]+)?", old.get(url, ""))
+        prev = re.search(r"triage: (PASS|MARGINAL|FAIL) ?([\d.]+)?", old.get(K.url_key(url), ""))
         was = f", 이전 {prev.group(1)} {prev.group(2) or ''}".rstrip() if prev else ""
         kind = "재채점" if prev else "선별"        # 대기에 있던 줄을 다시 매기면 재채점, 선별 전이거나 처음이면 선별
         src = K.read_text(os.path.join(K.ROOT, j.get("source", ""))) if j.get("source") else ""
@@ -339,12 +339,12 @@ def apply(files: List[str]) -> str:
             sc = f"{r['total']}/5" if r["total"] is not None else "?/5 본문 확인 필요"
             new_wait.append((r["total"] or 0, f"- [ ] {url} | {j.get('company')} | {j.get('title')} | {loc} | triage: {r['triage']} {sc} "
                                               f"({kind} {today}{was}) | {j.get('note', '')} | 판정: {rel}"))
-        touched.add(url)
+        touched.add(K.url_key(url))
         n += 1
     out = []
     for h, ls in secs:
         if h.startswith((PENDING, WAIT)):
-            rest = [l for l in ls if not any(u in touched for u in K.URL_RE.findall(l))]
+            rest = [l for l in ls if not any(K.url_key(u) in touched for u in K.URL_RE.findall(l))]
             if h.startswith(WAIT):
                 items = [(float((re.search(r"triage: \w+ ([\d.]+)/5", l) or [0, 0])[1]), l) for l in rest if l.lstrip().startswith("- [")]
                 others = [l for l in rest if not l.lstrip().startswith("- [")]
