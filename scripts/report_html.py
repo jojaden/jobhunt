@@ -96,7 +96,11 @@ def _manual(pipe: str):
     src, checks = K.load_yaml(K.P["sources"]), K.load_yaml(K.P["checks"])
     chans = [(n, c) for n, c in (src.get("boards") or {}).items() if c.get("enabled") and n not in providers.BOARDS]
     chans += [(c["name"], c) for c in src.get("companies") or [] if providers.for_company(c) is None]
-    chans += [(n, {}) for n in checks if n not in {x for x, _ in chans}]      # sources.yaml 밖에서 따로 확인한 채널
+    names = {x for x, _ in chans}
+    # 자동 수집되는 보드·회사 (별칭 포함). 자동 수집으로 바뀌기 전의 직접 확인 기록은 다시 볼 곳이 아니다
+    auto = {K.norm_company(n) for n, c in (src.get("boards") or {}).items() if c.get("enabled") and n in providers.BOARDS}
+    auto |= {K.norm_company(c["name"]) for c in src.get("companies") or [] if providers.for_company(c) is not None}
+    chans += [(n, {}) for n in checks if n not in names and K.norm_company(n) not in auto]   # sources.yaml 밖에서 따로 확인한 채널
     sites, leads = [], []
     for n, c in chans:
         k, b = checks.get(n) or {}, c.get("browse") or {}
