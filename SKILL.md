@@ -39,7 +39,7 @@ jobhunt check               page count · orphaned headings · links · placehol
 jobhunt check-links         link reachability
 jobhunt git-log             author-filtered commit log from a local git repository
 jobhunt setup               skill link into installed agents (~/.claude/skills, ~/.codex/skills, or SKILLS_DIR) + Playwright Chromium, fonts (Pretendard, Noto Sans/Serif CJK KR), poppler; on an installed tool it also prepares the home folder
-jobhunt scan                posting collection (Wanted · Jumpit · LinkedIn · Saramin · Greenhouse · Lever · Toss · NHN · Kakao · Naver · Baemin · LINE · greetinghr · ninehire · plain-HTML career pages) → filters → pipeline.md; `--add` for postings found by hand
+jobhunt scan                posting collection (Wanted · Jumpit · LinkedIn · Saramin · Remember · Greenhouse · Lever · Toss · NHN · Kakao · Naver · Baemin · LINE · greetinghr · ninehire · plain-HTML career pages) → filters → pipeline.md; `--add` for postings found by hand
 jobhunt alive               closing check for tracked postings
 jobhunt tracker             application log (add/set) and combined report table (report)
 jobhunt score               posting score (line-level judgment file → per-item scores)
