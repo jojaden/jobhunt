@@ -32,7 +32,7 @@
 ### 특징
 
 - 🏢 **회사 넓히기:** 잡보드에 잘 안 올리고 자체 채용 사이트에만 공고를 내는 회사를 찾습니다. 기술 블로그·GitHub 조직 목록, 원티드 회사 정보(연봉 수준·인원), 알려진 회사 목록으로 인지도·규모 점수를 매기고, 홈페이지에서 채용 사이트와 채용 시스템(greetinghr·나인하이어·Greenhouse 등)을 찾아 수집 대상에 넣습니다.
-- 🔎 **공고 찾기:** 원티드·점핏·LinkedIn·사람인·Greenhouse(당근·쿠팡·크래프톤 등)·토스·NHN·카카오·greetinghr·나인하이어·Workday·Workable 기업과, 첫 화면에 목록이 없는 자체 채용 사이트(탐색 때 한 번 찾아 둔 목록 API)까지 한 번에 수집합니다. 제목·연차·근무지, 사이트 간 중복(회사 별칭으로 한글·영문 표기 통일), 제외 회사, 재지원 쿨다운을 자동으로 거릅니다.
+- 🔎 **공고 찾기:** 원티드·점핏·LinkedIn·사람인·Greenhouse(당근·쿠팡·크래프톤 등)·토스·NHN·카카오·greetinghr·나인하이어·Workday·Workable 기업과, 첫 화면에 목록이 없는 자체 채용 사이트(탐색 때 한 번 찾아 둔 목록 API)까지 한 번에 수집합니다. 제목·연차·근무지, 사이트 간 중복(회사 별칭으로 한글·영문 표기 통일), 제외 회사, 재지원 쿨다운을 자동으로 거르고, 표기만 달라 같은 공고일 수 있는 공고는 표시해 한 번만 판정합니다.
 - 📊 **맞춤도 평가:** 근무지·영어·기술 스택 조건을 공고 문장 근거와 함께 판정합니다. 자격요건·우대사항 한 줄마다 내 경험을 연결해 1~5점으로 매깁니다. 필수와 우대는 "~필요해요"와 "~좋아요" 같은 문장 끝으로 구분합니다.
 - 📝 **맞춤 이력서:** 평가에서 나온 계획(앞세울 프로젝트, 기술 교집합, 용어)으로 공고별 yaml을 만들고, 디자인 3종 중 하나로 A4 PDF를 빌드합니다. 빌드할 때마다 페이지 수·링크·문체를 자동으로 검사합니다.
 - 📋 **지원 현황:** 평가한 공고와 선별을 통과한 공고를 표 하나에 모아 지원 여부와 마감 여부를 함께 보여 줍니다.
@@ -92,11 +92,11 @@ git·curl이 없으면 Ubuntu는 apt로 설치하고, macOS는 `xcode-select --i
 | 설정 | 설명 |
 |---|---|
 | `JOBHUNT_HOME=경로` | 개인 자료 폴더를 묻지 않고 정할 때 (기억해 두므로 셸 설정은 필요 없음. 기본은 처음 설치 때 화면에서 고름) |
-| `JOBHUNT_REF=v1.2.0` | 버전(태그)이나 브랜치 고정 |
+| `JOBHUNT_REF=v1.3.0` | 버전(태그)이나 브랜치 고정 |
 | `JOBHUNT_REPO=주소` | fork한 저장소에서 받을 때 |
 | `… \| bash -s -- --no-skill` | 뒤 인자는 `jobhunt setup`으로 넘어갑니다 (아래 옵션) |
 
-예: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.2.0 bash`
+예: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.3.0 bash`
 
 <details>
 <summary>예전에 git clone으로 설치했다면</summary>
@@ -186,6 +186,18 @@ codex plugin add jobhunt@jobhunt
 
 </details>
 
+설치 뒤 생기는 곳:
+
+| 무엇 | 어디 |
+|---|---|
+| `jobhunt` 명령과 도구(코드·지침) | uv가 관리하는 폴더 (보통 `~/.local/share/uv/tools/jobhunt`, 명령은 `~/.local/bin/jobhunt`). `jobhunt where`로 확인 |
+| 개인 자료 폴더 (기본 `~/jobhunt`) | `data/`(내 자료)와, 설치된 지침을 가리키는 짧은 `AGENTS.md`·`CLAUDE.md`뿐입니다. 도구 파일은 없습니다 |
+| 스킬 연결 | `~/.claude/skills/jobhunt`·`~/.codex/skills/jobhunt` 링크, 또는 플러그인 |
+| 고른 폴더 기억 | `~/.config/jobhunt/home` (기본 폴더가 아닐 때만) |
+| 이력서 빌드 환경 | Playwright Chromium, 한글 폰트, poppler |
+
+예전 git 설치에서 바꿨다면 개인 자료 폴더에 `.old-repo/`(옮겨 둔 예전 도구 파일)와, 예약을 걸어 둔 경우 `scripts/weekly.sh`(새 명령으로 이어 주는 파일)가 더 있습니다.
+
 > **왜 도구와 내 기록을 나눠 두나요?**
 >
 > - **업데이트해도 내 기록은 그대로입니다.** 도구는 uv가 관리하는 폴더에, 기록은 `~/jobhunt/data`에 따로 있어 업데이트가 기록을 건드리지 않습니다. 도구 파일을 실수로 고쳐 업데이트가 깨지는 일도 없습니다.
@@ -199,7 +211,7 @@ codex plugin add jobhunt@jobhunt
 curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash
 ```
 
-버전은 `v1.2.0`처럼 태그로 붙입니다. 설치 명령으로 갱신하면 그 사이 바뀐 점을 보여 주고, 나중에도 `jobhunt changes <이전 버전>`으로 볼 수 있습니다([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). `data/` 형식이 바뀐 버전은 옮기는 방법을 함께 적습니다. 지금 버전은 `jobhunt --version`.
+버전은 `v1.3.0`처럼 태그로 붙입니다. 설치 명령으로 갱신하면 그 사이 바뀐 점을 보여 주고, 나중에도 `jobhunt changes <이전 버전>`으로 볼 수 있습니다([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). `data/` 형식이 바뀐 버전은 옮기는 방법을 함께 적습니다. 지금 버전은 `jobhunt --version`.
 
 에이전트별로 시작하는 법:
 
@@ -231,6 +243,7 @@ curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | b
 ```bash
 jobhunt weekly                       # 수집 → 마감 확인 → 현황표 (LLM 없이, cron·launchd 가능)
 jobhunt scan --dry-run               # 파일을 쓰지 않고 수집 결과만 보기
+jobhunt scan --add found.yaml        # 손으로 찾은 공고를 중복 확인·필터를 거쳐 대기함에 (에이전트가 씀)
 jobhunt report                       # 공고 현황표 HTML (data/search/reports/postings.html)
 jobhunt tracker report --alive       # 같은 내용을 텍스트 표로 (마감 여부 포함)
 jobhunt tracker set 3 지원함          # 지원 기록
@@ -251,9 +264,10 @@ jobhunt where                        # 개인 자료 폴더 위치 (jobhunt --he
 | 토스 전 계열사, 네이버, 카카오, NHN, greetinghr·나인하이어 기업, 공고 링크가 HTML에 있는 채용 페이지 | 채용 사이트 JSON·HTML | `scan.py` (회사는 `discover.py`가 찾아 넣음) |
 | Workday·Workable·Ashby·잡플렉스(recruiter.co.kr)·라운드HR·SK Careers 기업 | 채용 시스템 공개 목록 API | `scan.py` (`discover.py`가 채용 시스템을 판별·검증) |
 | 첫 화면에 공고 목록이 없는 자체 채용 사이트 (탭·버튼 뒤, 스크립트로 그림) | 탐색 때 한 번 찾은 목록 API(`jsonapi`)·사이트맵 | `scan.py` (`discover.py probe`가 헤드리스 브라우저로 찾아 둠, 매주 수집은 브라우저 없이) |
-| 잡코리아, 리멤버, 봇 차단·토큰이 필요한 기업 사이트 | HTML·브라우저·Firecrawl | AI 에이전트가 회사별 읽는 법(`sources.yaml`의 `browse`)과 [`references/judgment.md`](references/judgment.md) §2 유형표대로 수집하고, 결과는 공고 현황표의 "직접 확인한 곳" 장에 남김 |
+| 잡코리아, 리멤버, 봇 차단·토큰이 필요한 기업 사이트 | HTML·브라우저·Firecrawl | AI 에이전트가 회사별 읽는 법(`sources.yaml`의 `browse`)과 [`references/judgment.md`](references/judgment.md) §2 유형표대로 수집하고 `jobhunt scan --add`로 넣음. 결과는 공고 현황표의 "직접 확인한 곳" 장에 남김(자동 수집으로 바뀐 회사는 빠짐) |
 
-- **거르는 기준:** 제목 키워드, 요구 연차(숫자가 있을 때), 근무지, 이미 본 공고(다른 사이트에 같은 공고 포함), 제외 회사, 지원 후 재지원 쿨다운(기본 6개월), 영어 전용 JD(설정 시).
+- **거르는 기준:** 제목 키워드, 요구 연차(숫자가 있을 때), 근무지, 이미 본 공고(다른 사이트에 같은 공고 포함. 회사 이름의 `(주)` 같은 법인 표기와 '개발자'·'개발' 차이는 무시), 제외 회사, 지원 후 재지원 쿨다운(기본 6개월), 영어 전용 JD(설정 시).
+- **같은 공고일 수 있는 공고:** 다른 사이트에 같은 회사의 거의 같은 제목, 또는 이름 앞이 같은 회사(계열사·바뀐 이름)의 같은 제목으로 올라온 공고는 거르지 않고 대기함 줄에 `[같은 공고일 수 있음]`을 붙입니다. 선별 때 본문이 같으면 먼저 한 판정을 그대로 씁니다. 회사 이름이 바뀌었다면 `sources.yaml`의 `company_aliases`에 예전 이름을 넣어 두세요.
 - **거르지 않는 기준:** 기술 스택은 수집할 때 거르지 않습니다. 검색어를 특정 언어로 좁히면 언어를 따지지 않는 좋은 공고가 빠지기 때문이에요. 수집 단계에서는 자격요건 문장의 필수/우대 힌트만 붙이고, 판정은 선별 단계에서 합니다. 선별 때 자격요건이 내가 쓰지 않는 언어를 꼭 요구하면(`targets.yaml`의 `stack_languages`로 판단, "등"·"이에 준하는" 같은 여지가 없을 때만) 스크립트가 제외 초안과 근거 문장을 채우고, 에이전트는 그 문장만 확인합니다.
 - **마감 판정:** `jobhunt alive`가 사이트별 상세 API로 확인합니다. 공개 목록에서 사라졌다고 마감으로 보지 않습니다.
 - **속도와 예의:** 서로 다른 사이트는 동시에 받고, 같은 사이트에는 한 번에 하나씩 앞 응답이 끝난 뒤 1초(LinkedIn 1.6초)를 두고 요청합니다. 출처 136곳 수집이 약 2분, 마감 확인이 약 1분 반입니다. 요청 제한(429)은 우회하지 않습니다. LinkedIn이 중간에 막으면 받은 데까지만 쓰고 수집 보고에 "⚠ 일부만"으로 남기며, 못 받은 공고는 다음 실행에 다시 받습니다.
@@ -341,6 +355,7 @@ install.sh                   한 줄 설치 (uv → jobhunt 설치·갱신 → j
 pyproject.toml               jobhunt 패키지 (uv tool install 로 설치하는 명령)
 .claude-plugin/ plugin/      Claude Code·Codex 플러그인 저장소와 플러그인 (설치된 스킬로 안내만 함)
 AGENTS.md                    모든 AI 에이전트용 작업 안내 (CLAUDE.md 는 이 파일을 불러옴)
+DESIGN.md                    공고 현황표·이력서 디자인 기준
 LEGAL_DISCLAIMER.md          사용 범위와 면책
 CHANGELOG.md                 변경 기록 (버전마다 data/ 이전 안내)
 CONTRIBUTING.md              기여 안내 (개발 환경, 확인 방법, 새 수집기 추가)
@@ -348,20 +363,25 @@ SKILL.md                     스킬 진입점, 요청을 모드로 연결
 modes/                       공통 규칙과 모드별 절차 (onboard · scan · evaluate · tailor · cover · deep · interview · track · outcome)
 scripts/
   cli.py                     jobhunt 명령 (명령마다 아래 스크립트를 그대로 실행)
+  jobkit.py                  공통 핵심: 경로, HTTP, 필터, 중복 판정, 수집 기록·대기함·지원 표 읽기
   scan.py · providers/       공고 수집 (사이트별 모듈)
   discover.py                회사 찾기 (채용 사이트·채용 시스템 판별 → 수집 대상 추가)
   alive.py                   마감 확인
+  score.py                   판정 파일 → 점수 계산, 대기함 반영 (score init 은 판정 뼈대)
   tracker.py                 지원 현황 기록, 통합 현황표
+  report_html.py             공고 현황표 HTML (jobhunt report)
   cover_check.py             자기소개서 문항 글자 수·문체 검사
   eval_golden.py             판정 정답 세트와 에이전트 판정 비교 (분류 규칙을 바꿨을 때)
   weekly.py                  주간 스캔 (scan → alive → report, weekly.sh 는 예전 경로용)
   render.py                  yaml → HTML → PDF + PNG, 디자인 A/B/C
   check.py · check_links.py  빌드 후 검사, 링크 접속 확인
   git_log.sh                 로컬 git 저장소에서 내 커밋 로그 추출
-  setup.sh                   설치: 스킬 연결 + Chromium, 폰트, poppler (jobhunt setup 이 실행)
+  setup.sh · setup_ui.py     설치: 스킬 연결 + Chromium, 폰트, poppler (jobhunt setup 이 실행) · 고르는 화면
   privacy_check.py           개인 자료 커밋 방지 (CI, .githooks/pre-commit)
 references/
   sources.md                 채용 사이트별 수집 방법
+  company_seed.yaml          회사 찾기에 쓰는 알려진 회사 목록
+  scoring.md · judgment.md   공고 분류·점수 기준 · 점수 검토와 스크립트 밖 검색
   yaml_schema.md · resume.schema.json   이력서 yaml 형식 (설명 · 검사와 편집기 자동완성용 스키마)
   writing_rules.md           문장 규칙과 점검 방법
   style_rules.yaml           금지어 · 번역투 · 기호 한도
@@ -373,7 +393,7 @@ examples/example.yaml        가상 인물 예시
 examples/golden/             판정 정답 세트 (가상 지원자·공고·정답)
 tests/                       도구를 고친 뒤 돌리는 테스트 (네트워크 없이, python3 -m unittest discover -s tests)
 assets/                      README 미리보기 이미지와 예시 PDF
-data/                        내 자료 (git 제외, 구조와 예시만 올라감. 설치본은 ~/jobhunt/data)
+data/                        내 자료 (git 제외, 구조와 예시만 올라감. 설치본은 개인 자료 폴더의 data/, 기본 ~/jobhunt/data)
   profile/ experience/ preferences/ portfolio/ search/ job_postings/ applications/ resumes/ output/ interview/
 ```
 
