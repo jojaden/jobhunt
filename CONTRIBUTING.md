@@ -57,7 +57,7 @@ PR을 올리면 CI가 같은 테스트(Ubuntu·macOS × Python 3.10·3.12), ruff
 - 커밋 메시지는 한국어. 제목은 `무엇 — 어떻게 (#이슈)`, 본문에 바꾼 파일과 이유
 - 사용자가 알아챌 변경은 [`CHANGELOG.md`](CHANGELOG.md) "다음 버전"에 한 줄 (이슈 번호를 끝에)
   - PR 규칙 점검이 확인합니다: `scripts/`·`modes/`·`references/`·`SKILL.md`·`install.sh`·의존성을 바꿨는데 CHANGELOG 가 그대로면 실패합니다. 사용자가 알아챌 변경이 아니면 PR 에 `변경기록 없음` 라벨을 붙이세요
-  - AI 리뷰 댓글(저장소에 키가 있을 때)은 참고용입니다. 병합은 관리자 승인으로 정합니다
+  - AI 리뷰(ChatGPT Codex 코드 리뷰) 댓글은 참고용입니다. 리뷰 기준은 `AGENTS.md` 의 "Code Review Rules", 병합은 관리자 승인으로 정합니다
 - PR 본문은 양식(요약 · 확인한 것 · `Closes #번호`)을 채웁니다. 확인하지 못한 것은 못 했다고 적습니다
 - 릴리스는 관리자가 합니다: "다음 버전" → `vX.Y.Z — 날짜`, 버전, 태그 (절차는 `AGENTS.md`). 태그를 올리면 Releases 는 자동으로 만들어집니다
 
