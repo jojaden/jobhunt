@@ -52,6 +52,9 @@ class Pr(unittest.TestCase):
         self.assertIn("'## 다음 버전'", errors[0])
         released = CHANGELOG.replace("- 새 기능 (#1)\n- **data/ 이전:** 없음\n", "")     # 릴리스 PR: 빈 '다음 버전'
         self.assertEqual(rc.pr_problems(["CHANGELOG.md", "pyproject.toml"], released, False), ([], []))
+        no_line = released.replace("- 지난 기능 (#0)\n- **data/ 이전:** 없음", "- 지난 기능 (#0)")   # 새 버전 절에서 빠뜨림
+        errors, _ = rc.pr_problems(["CHANGELOG.md", "pyproject.toml"], no_line, False)
+        self.assertIn("'v1.2.0 — 2026-10-13' 절에", errors[0])
 
     def test_readme_pair(self):
         """README 하나만 바꾸면 경고 (실패 아님)."""
@@ -85,6 +88,8 @@ class Release(unittest.TestCase):
             rc.release_notes("v1.3.0", self.repo(pyproject="1.3.0", plugin="1.3.0"))
         with self.assertRaisesRegex(ValueError, "vX.Y.Z"):
             rc.release_notes("1.2.0", self.repo())
+        with self.assertRaisesRegex(ValueError, "data/ 이전"):
+            rc.release_notes("v1.2.0", self.repo(changelog=CHANGELOG.replace("- 지난 기능 (#0)\n- **data/ 이전:** 없음", "- 지난 기능 (#0)")))
         with self.assertRaisesRegex(ValueError, "비어 있습니다"):
             rc.release_notes("v1.2.0", self.repo(changelog=CHANGELOG.replace("- 지난 기능 (#0)\n- **data/ 이전:** 없음\n", "")))
 

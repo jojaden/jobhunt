@@ -5,8 +5,8 @@
   python3 .github/scripts/repo_check.py release <태그>   태그·버전·CHANGELOG 를 맞춰 보고 릴리스 본문을 출력
 
 pr: 사용자가 알아챌 파일을 바꿨는데 CHANGELOG.md 가 그대로면 실패 (SKIP_CHANGELOG=true 면 넘김 — PR 의 '변경기록 없음' 라벨),
-    CHANGELOG '다음 버전'에 줄이 있는데 '**data/ 이전:**' 줄이 없으면 실패 (릴리스 직후의 빈 절은 통과), README.md·README.en.md 중 하나만 바꾸면 경고.
-release: 태그 vX.Y.Z = pyproject.toml version = plugin.json version, CHANGELOG 에 '## vX.Y.Z — YYYY-MM-DD' 절과 그 줄이 있어야 한다.
+    CHANGELOG '다음 버전'에 줄이 있는데 '**data/ 이전:**' 줄이 없으면 실패 (빈 절이면 그 아래 새 버전 절에서), README.md·README.en.md 중 하나만 바꾸면 경고.
+release: 태그 vX.Y.Z = pyproject.toml version = plugin.json version, CHANGELOG 에 '## vX.Y.Z — YYYY-MM-DD' 절과 그 줄(data/ 이전 줄 포함)이 있어야 한다.
 """
 import json
 import os
@@ -19,6 +19,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # 바꾸면 사용자가 알아채는 곳 (설치되는 스킬·스크립트·의존성). tests/·docs/·.github/ 는 아니다.
 USER_FACING = ("scripts/", "modes/", "references/", "SKILL.md", "install.sh", "pyproject.toml", "requirements.txt")
 SKIP_LABEL = "변경기록 없음"
+MIGRATION = r"^- \*\*data/ 이전:\*\*"      # 버전마다 있어야 하는 줄 (옮길 것이 없으면 "없음")
 
 
 def _read(root: str, *parts: str) -> str:
@@ -43,8 +44,13 @@ def pr_problems(changed: List[str], changelog: str, skip_changelog: bool) -> Tup
     if "CHANGELOG.md" in changed:
         if not re.search(r"^## 다음 버전\s*$", changelog, re.M):
             errors.append("CHANGELOG.md 에 '## 다음 버전' 절이 없습니다.")
-        elif (nxt := _section(changelog, "다음 버전")) and not re.search(r"^- \*\*data/ 이전:\*\*", nxt, re.M):
-            errors.append("CHANGELOG.md '다음 버전'에 '- **data/ 이전:**' 줄이 없습니다 (옮길 것이 없으면 '없음').")
+        elif _section(changelog, "다음 버전"):
+            if not re.search(MIGRATION, _section(changelog, "다음 버전"), re.M):
+                errors.append("CHANGELOG.md '다음 버전'에 '- **data/ 이전:**' 줄이 없습니다 (옮길 것이 없으면 '없음').")
+        else:                                       # 릴리스 PR: 빈 '다음 버전' 아래 새 버전 절을 본다
+            head = re.search(r"^## (v\d+\.\d+\.\d+ — \d{4}-\d{2}-\d{2})\s*$", changelog, re.M)
+            if head and not re.search(MIGRATION, _section(changelog, head.group(1)), re.M):
+                errors.append(f"CHANGELOG.md '{head.group(1)}' 절에 '- **data/ 이전:**' 줄이 없습니다 (옮길 것이 없으면 '없음').")
     readmes = {"README.md", "README.en.md"} & set(changed)
     if len(readmes) == 1:
         other = ({"README.md", "README.en.md"} - readmes).pop()
@@ -70,6 +76,8 @@ def release_notes(tag: str, root: str = ROOT) -> str:
     body = _section(changelog, head.group(1))
     if not body:
         raise ValueError(f"CHANGELOG.md '{head.group(1)}' 절이 비어 있습니다.")
+    if not re.search(MIGRATION, body, re.M):
+        raise ValueError(f"CHANGELOG.md '{head.group(1)}' 절에 '- **data/ 이전:**' 줄이 없습니다.")
     return body
 
 
