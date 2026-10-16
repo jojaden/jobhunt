@@ -92,11 +92,11 @@ git·curl이 없으면 Ubuntu는 apt로 설치하고, macOS는 `xcode-select --i
 | 설정 | 설명 |
 |---|---|
 | `JOBHUNT_HOME=경로` | 개인 자료 폴더를 묻지 않고 정할 때 (기억해 두므로 셸 설정은 필요 없음. 기본은 처음 설치 때 화면에서 고름) |
-| `JOBHUNT_REF=v1.3.1` | 버전(태그)이나 브랜치 고정 |
+| `JOBHUNT_REF=v1.4.0` | 버전(태그)이나 브랜치 고정 |
 | `JOBHUNT_REPO=주소` | fork한 저장소에서 받을 때 |
 | `… \| bash -s -- --no-skill` | 뒤 인자는 `jobhunt setup`으로 넘어갑니다 (아래 옵션) |
 
-예: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.3.1 bash`
+예: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.4.0 bash`
 
 <details>
 <summary>예전에 git clone으로 설치했다면</summary>
@@ -211,7 +211,7 @@ codex plugin add jobhunt@jobhunt
 curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash
 ```
 
-버전은 `v1.3.1`처럼 태그로 붙입니다. 설치 명령으로 갱신하면 그 사이 바뀐 점을 보여 주고, 나중에도 `jobhunt changes <이전 버전>`으로 볼 수 있습니다([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). `data/` 형식이 바뀐 버전은 옮기는 방법을 함께 적습니다. 지금 버전은 `jobhunt --version`.
+버전은 `v1.4.0`처럼 태그로 붙입니다. 설치 명령으로 갱신하면 그 사이 바뀐 점을 보여 주고, 나중에도 `jobhunt changes <이전 버전>`으로 볼 수 있습니다([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). `data/` 형식이 바뀐 버전은 옮기는 방법을 함께 적습니다. 지금 버전은 `jobhunt --version`.
 
 에이전트별로 시작하는 법:
 

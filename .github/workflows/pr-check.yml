@@ -1,7 +1,7 @@
 # PR 규칙 점검 (.github/scripts/repo_check.py pr): AGENTS.md 규칙 가운데 기계로 볼 수 있는 것.
 #   사용자가 알아챌 파일(scripts/ · modes/ · references/ · SKILL.md · install.sh · 의존성)을 바꿨는데 CHANGELOG.md 가 그대로면 실패
 #   — 사용자가 알아챌 변경이 아니면 PR 에 '변경기록 없음' 라벨을 붙인다 (붙이고 떼면 다시 돈다).
-#   CHANGELOG '다음 버전'에 '**data/ 이전:**' 줄이 없으면 실패, README.md · README.en.md 중 하나만 바꾸면 경고.
+#   CHANGELOG '다음 버전'에 줄이 있는데 '**data/ 이전:**' 줄이 없으면 실패 (빈 절이면 그 아래 새 버전 절에서), README.md · README.en.md 중 하나만 바꾸면 경고.
 name: pr-check
 
 on:

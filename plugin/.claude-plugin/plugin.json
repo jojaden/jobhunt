@@ -1,6 +1,6 @@
 {
   "name": "jobhunt",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "한국 개발자 구직을 처음부터 끝까지: 공고 수집, 판정, 맞춤 이력서 PDF, 자기소개서, 면접 준비, 지원 기록. 지침과 스크립트는 jobhunt 명령(uv tool)으로 설치된 것을 씁니다.",
   "author": {
     "name": "jojaden",
