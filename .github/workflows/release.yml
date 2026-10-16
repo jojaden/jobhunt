@@ -1,0 +1,32 @@
+# 릴리스: main 의 커밋에 vX.Y.Z 태그를 올리면 GitHub Release 를 만든다.
+#   태그 = pyproject.toml version = plugin/.claude-plugin/plugin.json version, CHANGELOG.md 의 '## vX.Y.Z — YYYY-MM-DD' 절이 있어야 하고
+#   (.github/scripts/repo_check.py release), 그 절의 줄이 Release 본문이 된다. 버전 올리기와 태그는 사람이 한다 (AGENTS.md).
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: 태그가 main 에 있는지
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor HEAD origin/main || { echo "::error::$GITHUB_REF_NAME 태그가 main 의 커밋이 아닙니다"; exit 1; }
+      - name: 버전 · CHANGELOG 확인, 본문 만들기
+        run: python3 .github/scripts/repo_check.py release "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
+      - name: Release 만들기
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes-file "$RUNNER_TEMP/notes.md" --verify-tag
