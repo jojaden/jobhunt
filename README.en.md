@@ -94,11 +94,11 @@ If git or curl is missing, Ubuntu installs it with apt and macOS points you to `
 | Setting | Meaning |
 |---|---|
 | `JOBHUNT_HOME=path` | Set your data folder without being asked (it is remembered, so nothing goes in your shell config; by default you pick it on screen at the first install) |
-| `JOBHUNT_REF=v1.3.1` | Pin a version (tag) or branch |
+| `JOBHUNT_REF=v1.4.0` | Pin a version (tag) or branch |
 | `JOBHUNT_REPO=url` | Install from a fork |
 | `… \| bash -s -- --no-skill` | Trailing arguments go to `jobhunt setup` (options below) |
 
-Example: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.3.1 bash`
+Example: `curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | JOBHUNT_REF=v1.4.0 bash`
 
 <details>
 <summary>If you installed with git clone before</summary>
@@ -213,7 +213,7 @@ Updating:
 curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash
 ```
 
-Versions are git tags such as `v1.3.1`. Updating with the install command shows what changed since your version, and `jobhunt changes <old version>` shows it later ([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). Versions that change a `data/` format say how to move your files. `jobhunt --version` prints the installed version.
+Versions are git tags such as `v1.4.0`. Updating with the install command shows what changed since your version, and `jobhunt changes <old version>` shows it later ([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). Versions that change a `data/` format say how to move your files. `jobhunt --version` prints the installed version.
 
 Starting each agent:
 
