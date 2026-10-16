@@ -145,6 +145,15 @@ class RememberCategories(unittest.TestCase):
         with replay({self.URL: self.page([161])}), self.assertRaisesRegex(ValueError, "직군 번호"):
             providers.remember.collect({"job_category_ids": [99999]})
 
+    def test_partial_on_429(self):
+        """429 가 나면 그 검색은 멈추고, 받은 공고와 멈춘 곳을 Partial 로 돌려준다 (형식 변경으로 보고하지 않음)."""
+        first = {"json": dict(self.page([310])["json"], meta={"total_pages": 3})}
+        with replay({self.URL: [first, {"status": 429, "html": ""}]}):
+            jobs = providers.remember.collect({"job_category_ids": [310]})
+        self.assertIsInstance(jobs, K.Partial)
+        self.assertEqual([j.id for j in jobs], ["1"])
+        self.assertIn("'직군' 2쪽부터", jobs.why)
+
 
 if __name__ == "__main__":
     unittest.main()

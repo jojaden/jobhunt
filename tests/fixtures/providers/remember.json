@@ -28,7 +28,8 @@
       "https://career-api.rememberapp.co.kr/job_postings/903": {"json": {"data": {"id": 903, "status": "closed", "ends_at": null}, "meta": {}}},
       "https://career-api.rememberapp.co.kr/job_postings/904": {"json": {"data": {"id": 904, "status": "published", "ends_at": "2020-01-01T23:59:59.000+09:00"}, "meta": {}}},
       "https://career-api.rememberapp.co.kr/job_postings/905": {"json": {"data": {"id": 905, "status": "draft"}, "meta": {}}},
-      "https://career-api.rememberapp.co.kr/job_postings/906": {"status": 404, "html": ""}
+      "https://career-api.rememberapp.co.kr/job_postings/906": {"status": 404, "html": ""},
+      "https://career-api.rememberapp.co.kr/job_postings/907": {"status": 429, "html": ""}
     },
     "jobs": [
       {"source": "remember", "id": "901", "url": "https://career.rememberapp.co.kr/job/posting/901", "company": "(주)가나다랩",
@@ -44,6 +45,7 @@
     "alive": [["https://career.rememberapp.co.kr/job/posting/901", true], ["https://career.rememberapp.co.kr/job/posting/902", true],
               ["https://career.rememberapp.co.kr/job/posting/903", false], ["https://career.rememberapp.co.kr/job/posting/904", false],
               ["https://career.rememberapp.co.kr/job/posting/905", null], ["https://career.rememberapp.co.kr/job/posting/906", false],
+              ["https://career.rememberapp.co.kr/job/posting/907", null],
               ["https://career.rememberapp.co.kr/job/postings", null]],
     "handles": [["https://career.rememberapp.co.kr/job/posting/901", true], ["https://career.rememberapp.co.kr/job/postings?search=x", false]]
   },
