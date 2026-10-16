@@ -50,6 +50,8 @@ class Pr(unittest.TestCase):
         self.assertIn("data/ 이전", errors[0])
         errors, _ = rc.pr_problems(["CHANGELOG.md"], CHANGELOG.replace("## 다음 버전", "## 다음"), False)
         self.assertIn("'## 다음 버전'", errors[0])
+        released = CHANGELOG.replace("- 새 기능 (#1)\n- **data/ 이전:** 없음\n", "")     # 릴리스 PR: 빈 '다음 버전'
+        self.assertEqual(rc.pr_problems(["CHANGELOG.md", "pyproject.toml"], released, False), ([], []))
 
     def test_readme_pair(self):
         """README 하나만 바꾸면 경고 (실패 아님)."""

@@ -5,7 +5,7 @@
   python3 .github/scripts/repo_check.py release <태그>   태그·버전·CHANGELOG 를 맞춰 보고 릴리스 본문을 출력
 
 pr: 사용자가 알아챌 파일을 바꿨는데 CHANGELOG.md 가 그대로면 실패 (SKIP_CHANGELOG=true 면 넘김 — PR 의 '변경기록 없음' 라벨),
-    CHANGELOG '다음 버전'에 '**data/ 이전:**' 줄이 없으면 실패, README.md·README.en.md 중 하나만 바꾸면 경고.
+    CHANGELOG '다음 버전'에 줄이 있는데 '**data/ 이전:**' 줄이 없으면 실패 (릴리스 직후의 빈 절은 통과), README.md·README.en.md 중 하나만 바꾸면 경고.
 release: 태그 vX.Y.Z = pyproject.toml version = plugin.json version, CHANGELOG 에 '## vX.Y.Z — YYYY-MM-DD' 절과 그 줄이 있어야 한다.
 """
 import json
@@ -43,7 +43,7 @@ def pr_problems(changed: List[str], changelog: str, skip_changelog: bool) -> Tup
     if "CHANGELOG.md" in changed:
         if not re.search(r"^## 다음 버전\s*$", changelog, re.M):
             errors.append("CHANGELOG.md 에 '## 다음 버전' 절이 없습니다.")
-        elif not re.search(r"^- \*\*data/ 이전:\*\*", _section(changelog, "다음 버전"), re.M):
+        elif (nxt := _section(changelog, "다음 버전")) and not re.search(r"^- \*\*data/ 이전:\*\*", nxt, re.M):
             errors.append("CHANGELOG.md '다음 버전'에 '- **data/ 이전:**' 줄이 없습니다 (옮길 것이 없으면 '없음').")
     readmes = {"README.md", "README.en.md"} & set(changed)
     if len(readmes) == 1:
