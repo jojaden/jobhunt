@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """리멤버. 검색 API 가 목록과 본문을 함께 준다. 로그인·헤더 없이 일반 요청으로 받는다 (2026-10-15 실측).
 
-목록: POST career-api.rememberapp.co.kr/job_postings/search {"search":{"keywords":[..]},"page":n,"per":30}
+목록: POST career-api.rememberapp.co.kr/job_postings/search {"search":{"job_category_ids":[..],"keywords":[..]},"page":n,"per":50}
       → data[] (공고마다 주요업무·자격요건·우대사항·경력·근무지·마감), meta.total_pages. 정렬은 starts_at·id 내림차순.
+      per 는 50 까지 (100 은 400). 직군 번호 여럿은 합집합, 키워드와 함께 주면 둘 다 맞는 공고.
+      모르는 직군 번호는 조용히 무시되고, 모두 모르는 번호면 전체 공고(약 1만 4천 건)가 나온다.
 마감: GET career-api.rememberapp.co.kr/job_postings/{id} → data.status (published / closed)·ends_at. 지워진 공고는 404.
 헤드헌팅 공고는 실제 회사가 비공개라 회사 이름 앞에 "[헤드헌팅] " 을 붙여 다른 회사 공고와 중복으로 묶이지 않게 한다.
 """
@@ -26,15 +28,26 @@ def _text(p: dict) -> str:
     return "\n\n".join(f"## {k}\n{v.strip()}" for k, v in parts if v and v.strip())
 
 
+def _searches(cfg: dict) -> List[dict]:
+    """검색 조건들. 직군(job_category_ids)으로 찾고, 키워드가 있으면 키워드마다 직군과 함께. 둘 다 없으면 키워드 '백엔드'."""
+    cats = cfg.get("job_category_ids") or []
+    base = {"job_category_ids": cats} if cats else {}
+    kws = cfg.get("keywords") or ([] if cats else ["백엔드"])
+    return [dict(base, keywords=[kw]) for kw in kws] or [base]
+
+
 def collect(cfg: dict) -> List[Job]:
     jobs, seen = [], set()
-    for kw in cfg.get("keywords", ["백엔드"]):
-        for page in range(1, cfg.get("max_pages", 10) + 1):
-            q = {"search": {"keywords": [kw]}, "page": page, "per": 30}
+    cats = set(cfg.get("job_category_ids") or [])
+    for search in _searches(cfg):
+        for page in range(1, cfg.get("max_pages", 20) + 1):
+            q = {"search": search, "page": page, "per": 50}
             d = get_json(f"{API}/search", data=json.dumps(q, ensure_ascii=False).encode(), headers={"Content-Type": "application/json"})
             ps, meta = d.get("data"), d.get("meta")
             if not isinstance(ps, list) or not isinstance(meta, dict):
                 raise ShapeError("리멤버 목록에 data·meta 없음")
+            if cats and ps and not cats & set(ps[0].get("job_category_ids") or []):
+                raise ValueError(f"리멤버 직군 번호가 맞지 않음 (모르는 번호면 전체 공고가 나옴): {sorted(cats)}")
             for p in ps:
                 if p["id"] in seen:
                     continue

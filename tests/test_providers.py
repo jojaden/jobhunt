@@ -124,5 +124,27 @@ class LinkedinRateLimit(unittest.TestCase):
         self.assertIn("'server' 1쪽부터", jobs.why)
 
 
+class RememberCategories(unittest.TestCase):
+    URL = "https://career-api.rememberapp.co.kr/job_postings/search"
+
+    def page(self, cats):
+        return {"json": {"data": [{"id": 1, "title": "백엔드", "job_category_ids": cats, "organization": {"name": "가나다"}}],
+                         "meta": {"total_pages": 1}}}
+
+    def test_categories(self):
+        """직군으로 찾는다. 키워드가 있으면 키워드마다 직군과 함께."""
+        with replay({self.URL: self.page([310, 312])}) as fake:
+            self.assertEqual(len(providers.remember.collect({"job_category_ids": [310, 323]})), 1)
+            providers.remember.collect({"job_category_ids": [310], "keywords": ["Go", "서버"]})
+        sent = [json.loads(d)["search"] for _, d in fake.calls]
+        self.assertEqual(sent, [{"job_category_ids": [310, 323]},
+                                {"job_category_ids": [310], "keywords": ["Go"]}, {"job_category_ids": [310], "keywords": ["서버"]}])
+
+    def test_unknown_category(self):
+        """모르는 직군 번호는 전체 공고가 나와서, 받은 공고에 그 직군이 없으면 멈춘다."""
+        with replay({self.URL: self.page([161])}), self.assertRaisesRegex(ValueError, "직군 번호"):
+            providers.remember.collect({"job_category_ids": [99999]})
+
+
 if __name__ == "__main__":
     unittest.main()
