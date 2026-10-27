@@ -39,7 +39,7 @@ Everything written for the user — a resume line, a cover-letter answer, an int
 | posting text and evaluation | `job_postings/<YYYY-MM-DD>_<회사>_<포지션>.md`, `.eval.md` with the same name |
 | application status | `applications/tracker.md` |
 | cover-letter / application-form answers | `applications/covers/<회사>_<포지션>.yaml` |
-| company research note | `job_postings/<same name>.deep.md` |
+| preparation for a chosen posting (company and role research, tests, likely questions, what to prepare) | `job_postings/<same name>.prep.yaml` |
 | interview practice sheets, behavioral stories, debrief log | `interview/<회사>_<포지션>.md`, `interview/stories.md`, `interview/log.md` |
 | resume yaml, build output | `resumes/`, `output/` |
 

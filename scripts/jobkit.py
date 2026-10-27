@@ -51,6 +51,7 @@ P = dict(
     reports=os.path.join(DATA, "search", "reports"),   # weekly.py 주간 보고서
     checks=os.path.join(DATA, "search", "manual-checks.yaml"),   # 스크립트가 못 도는 채널을 손으로 확인한 결과
     tracker=os.path.join(DATA, "applications", "tracker.md"),
+    postings=os.path.join(DATA, "job_postings"),       # 공고 원문·평가·준비 자료 (prep_page.py)
 )
 
 

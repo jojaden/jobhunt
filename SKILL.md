@@ -1,7 +1,7 @@
 ---
 name: jobhunt
 description: Korean developer job search, end to end — finds postings (Wanted, Jumpit, LinkedIn, Saramin, JobKorea, company career sites), scores them against the user's experience, builds a tailored resume A4 PDF, writes cover-letter answers, researches the company, prepares and drills interviews, and logs results. Use for finding or evaluating postings, a company-specific resume or cover letter, interview prep or mock interviews, and application status.
-argument-hint: "[menu | onboard | scan | evaluate <url> | tailor | cover | deep | interview [plan|practice|debrief] | track | outcome | report]"
+argument-hint: "[menu | onboard | scan | report | prep | evaluate <url> | tailor | cover | interview [plan|practice|debrief] | track | outcome]"
 ---
 
 # Find postings → evaluate → apply → interview — router
@@ -30,7 +30,7 @@ modes/scan.md               finding postings and first-pass screening
 modes/evaluate.md           evaluating a posting (gates, requirement map, tailoring plan)
 modes/tailor.md             writing, building, and reviewing a tailored resume
 modes/cover.md              cover letter and application-form answers
-modes/deep.md               company research note (why this company, reverse questions, red flags)
+modes/prep.md               preparing a chosen posting: company and role research, stages and tests, likely questions, what to prepare → page linked from the report
 modes/interview.md          interview plan · practice drill · debrief · red flags
 modes/track.md              application tracker
 modes/outcome.md            patterns across results and debriefs → rule changes
@@ -44,7 +44,7 @@ jobhunt alive               closing check for tracked postings
 jobhunt tracker             application log (add/set) and combined report table (report)
 jobhunt score               posting score (line-level judgment file → per-item scores)
 jobhunt cover-check         cover-letter answers: character counts per limit + style rules
-jobhunt report              posting report as one HTML file
+jobhunt report              posting report as one HTML file, plus a page per prepared posting
 jobhunt discover            company discovery (tech blogs · GitHub · Wanted · known companies → career site and ATS detection → sources.yaml)
 jobhunt weekly              the LLM-free part of the weekly scan (scan → alive → report)
 jobhunt where               where the jobhunt home and the skill folder are
@@ -84,10 +84,11 @@ This skill is one router over several modes; they share `data/`, so one entry po
 | `scan discover` | "회사 더 찾아줘", "수집 회사 넓혀줘" | `modes/scan.md` step 0 (`jobhunt discover`) |
 | `scan triage` | "새로 수집한 공고 선별해줘" | `modes/scan.md` from step 4 |
 | `report` | "공고 현황 보여줘", "표로 보여줘" | `jobhunt report`, then "Showing the posting report" below |
+| `prep` | "A사, B사 준비해줘", "이 공고 준비하자", "면접 대비 자료 만들어줘" | `modes/prep.md` |
 | `evaluate` | a posting URL or body, "이 공고 어때?" | `modes/evaluate.md`, then the auto flow below |
 | `tailor` | "이 공고용 이력서 만들어줘", "이력서 고쳐줘", "다시 빌드" | `modes/tailor.md` (no evaluation yet → offer evaluate first) |
 | `cover` | "자소서 써줘", "지원서 문항 답 써줘" | `modes/cover.md` |
-| `deep` | "이 회사 조사해줘", "어떤 회사야?" | `modes/deep.md` |
+| `deep` | "이 회사 조사해줘", "어떤 회사야?" | `modes/prep.md` step 2 only (company part of the prep file) |
 | `interview plan` | "면접 준비", "prep {회사}" | `modes/interview.md` plan |
 | `interview practice` | "모의 면접", "예상 질문으로 연습", "꼬리질문 해줘" | `modes/interview.md` practice |
 | `interview debrief` | "면접 봤어", "면접에서 이런 질문 받았어" | `modes/interview.md` debrief |
@@ -96,17 +97,19 @@ This skill is one router over several modes; they share `data/`, so one entry po
 
 ### Menu
 
-Shown in Korean when no mode is given: one line per mode with its argument and an example request, grouped as 공고 찾기 (`scan`, `report`) · 지원 준비 (`evaluate`, `tailor`, `cover`, `deep`) · 면접 (`interview plan|practice|debrief`) · 기록·학습 (`track`, `outcome`, `onboard`). End with the next step that fits the user's current state (e.g. new postings waiting to be screened, an interview scheduled in the tracker memo).
+Shown in Korean when no mode is given: one line per mode with its argument and an example request, grouped as 공고 찾기 (`scan`, `report`) · 지원 준비 (`prep`, `evaluate`, `tailor`, `cover`) · 면접 (`interview plan|practice|debrief`) · 기록·학습 (`track`, `outcome`, `onboard`). End with the next step that fits the user's current state (e.g. new postings waiting to be screened, an interview scheduled in the tracker memo).
 
-### Auto flow from a posting
+### The flow
 
-Given a posting URL or body with no other instruction: evaluate → (user decides to apply) tailor → cover if the form has questions → track `지원함` → (document pass) deep + interview plan → interview practice → debrief after each stage. Confirm with the user between steps; never submit anything on the user's behalf.
+scan → report → **the user picks postings** → prep for each (evaluate first if needed; the report gets a "준비 자료" page per posting) → ask "이 공고에 맞춰 이력서를 준비할까요?" → on request tailor, then cover if the form has questions → track `지원함` → (document pass) interview plan from the prep file → interview practice → debrief after each stage.
+
+After showing the report, end with this next step: ask which postings to prepare. Given a single posting URL or body with no other instruction, start at evaluate and continue with prep. Confirm with the user between steps; never submit anything on the user's behalf.
 
 ### Showing the posting report
 
 The report is one self-contained HTML file so any agent (Claude Code, Codex, Grok, …) and any browser can open it. How to put it in front of the user depends on the host, never the other way round:
 
-- Host that can publish HTML pages (e.g. Claude Artifacts): also write the skeleton-less version with `--fragment <path>` and publish that file; keep publishing to the same page so the link stays.
+- Host that can publish HTML pages (e.g. Claude Artifacts): also write the skeleton-less version with `--fragment <path>` and publish that file; keep publishing to the same page so the link stays. Prepared postings add one full page each: the report prints them as `함께 올릴 쪽: prep/<name>.html ← <file>`; publish each alongside the report at that `prep/<name>.html` path so the row's "준비 자료" link opens it.
 - Any other host: open `data/search/reports/postings.html` in the user's browser (`open` on macOS) or give the path.
 - Text-only fallback: `jobhunt tracker report --alive` prints the same rows as a Markdown table.
 

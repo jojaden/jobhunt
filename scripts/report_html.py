@@ -78,9 +78,13 @@ def collect(today: date, since: str) -> dict:
             score=total, verdict=next(v for lim, v, _ in S.VERDICTS if total >= lim) if total is not None else "확인 필요",
             reason=f"평가함 ({a['date']} 평가, 이력서 PDF {a['pdf']}) — 아직 지원 전", parts={}, bonus=0, caps=[], band="",
             closes="", seen=a["date"], new=False, judgment=""))
-    apps = [dict(no=a["num"], date=a["date"], company=a["company"], role=a["role"], state=a["state"],
-                 memo=re.sub(r"\s+", " ", a["memo"]))
-            for a in K.read_tracker() if a["state"] in APPLIED]
+    apps = []
+    for a in K.read_tracker():
+        if a["state"] not in APPLIED:
+            continue
+        m = re.search(rf"#{a['num']:03d} \| (\S+)", pipe)
+        apps.append(dict(no=a["num"], date=a["date"], company=a["company"], role=a["role"], state=a["state"],
+                         memo=re.sub(r"\s+", " ", a["memo"]), url=m.group(1) if m else ""))
     sites, leads = _manual(pipe)
     return dict(rows=rows, apps=apps, sites=sites, leads=leads, today=today.isoformat(), since=since)
 
@@ -160,6 +164,25 @@ def demo(today: date) -> dict:
              dict(company="별빛커머스", title="백엔드 개발자", url="https://example.com/jobs/9", where=f"saramin · {d(0)}",
                   why="선별 전 — 본문을 아직 판정하지 않음")]
     return dict(rows=rows, apps=apps, sites=sites, leads=leads, today=today.isoformat(), since=today.isoformat(), demo=True)
+
+
+def attach(data: dict, preps) -> None:
+    """준비 자료(modes/prep.md)가 있는 공고 줄과 지원 기록에 그 쪽 링크를 단다. 주소는 url_key 로 맞춘다."""
+    import prep_page
+    by = {K.url_key(d["posting"]["url"]): d for d in preps}
+    for r in data["rows"] + data["apps"]:
+        d = by.get(K.url_key(r.get("url") or ""))
+        r["prep"] = dict(href=f'prep/{prep_page.slug(d["posting"]["url"])}.html', left=prep_page.remaining(d),
+                         total=len(d.get("prepare") or [])) if d else None
+    data["preps"] = list(preps)
+
+
+def _prep_link(r: dict) -> str:
+    p = r.get("prep")
+    if not p:
+        return ""
+    left = f' <small>남은 {p["left"]}</small>' if p["left"] else (" <small>모두 끝냄</small>" if p["total"] else "")
+    return f'<a class="prep-link" href="{_e(p["href"])}">준비 자료{left}</a>'
 
 
 # ── 그리기 ────────────────────────────────────────────────────────────────
@@ -279,6 +302,11 @@ thead th { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 1; bac
   font-size: .78rem; font-weight: 600; letter-spacing: .06em; }
 .due-past { color: var(--ink-3); text-decoration: line-through; }
 .reason { color: var(--ink-2); max-width: 60ch; }
+.prep-link { display: inline-block; margin-top: var(--s-1); padding: 1px .45em; border: 1px solid var(--blue); color: var(--blue);
+  font-size: .78rem; letter-spacing: .04em; text-decoration: none; }
+.prep-link:hover { background: var(--blue-soft); }
+.prep-link small { color: var(--ink-2); }
+.a-role .prep-link { display: block; width: fit-content; }
 
 /* 도장 */
 .seal { display: inline-grid; place-items: center; width: 2.9rem; height: 2.9rem; border: 2px solid var(--seal); border-radius: 50%;
@@ -496,7 +524,7 @@ def body(data: dict) -> str:
             out.append(f'<tr data-row data-att="{att_id}" data-soon="{1 if soon else 0}" data-text="{_e(text)}">'
                        f'<td class="c-no">{n}{"<br><span class=new>신규</span>" if r["new"] else ""}</td>'
                        f'<td class="c-co"><span class="co">{_e(r["company"])}</span></td>'
-                       f'<td class="c-title"><span class="title"><a href="{_e(r["url"])}" target="_blank" rel="noopener">{_e(r["title"])}</a></span></td>'
+                       f'<td class="c-title"><span class="title"><a href="{_e(r["url"])}" target="_blank" rel="noopener">{_e(r["title"])}</a></span>{_prep_link(r)}</td>'
                        f'<td class="c-loc">{_e(r["location"])}</td>'
                        f'<td class="c-score"><span class="score">{score}</span>{opener}</td>'
                        f'<td class="c-seal" style="--i:{min(n - 1, 12)};--r:{-9 + (n * 37) % 9 - 4}deg">{_stamp(r["verdict"])}</td>'
@@ -521,7 +549,7 @@ def body(data: dict) -> str:
     for a in sorted(sorted(apps, key=lambda a: a["date"], reverse=True), key=lambda a: a["state"] == "불합격"):   # 진행 중 먼저, 최근 순
         st_cls = "st-fail" if a["state"] == "불합격" else "st-live"
         out.append(f'<tr><td class="c-no a-no">{a["no"]}</td><td class="c-due a-date">{_e(a["date"])}</td><td class="c-co co a-co">{_e(a["company"])}</td>'
-                   f'<td class="a-role">{_e(a["role"])}</td><td class="st {st_cls}">{_e(a["state"])}</td><td class="reason a-memo">{_e(a["memo"][:120])}</td></tr>')
+                   f'<td class="a-role">{_e(a["role"])}{_prep_link(a)}</td><td class="st {st_cls}">{_e(a["state"])}</td><td class="reason a-memo">{_e(a["memo"][:120])}</td></tr>')
     out.append("</tbody></table></div></section>")
 
     if sites:
@@ -592,14 +620,24 @@ def main(argv=None):
     ap.add_argument("--since", help="이 날 이후 처음 찾은 공고에 신규 표시 (기본: 지난번 현황표 발급일)")
     a = ap.parse_args(argv)
     today = date.fromisoformat(a.today) if a.today else date.today()
+    import prep_page
     data = demo(today) if a.demo else collect(today, a.since or _since(a.out, today))
+    attach(data, [prep_page.example()] if a.demo else prep_page.index(K.P["postings"]).values())
+    for d in data["preps"]:
+        for msg in prep_page.problems(d):
+            print(f"준비 자료 확인: {os.path.basename(d['_path'])} — {msg}")
     os.makedirs(os.path.dirname(os.path.abspath(a.out)), exist_ok=True)
     K.write_text(a.out, document(data))
     print(f"공고 현황표: {a.out} ({len(data['rows'])}건)")
+    if prep_page.write_pages(data["preps"], os.path.dirname(os.path.abspath(a.out)), back=os.path.basename(a.out)):
+        print(f"준비 자료 쪽 {len(data['preps'])}개: {os.path.join(os.path.dirname(os.path.abspath(a.out)), 'prep')}")
     if a.fragment:
         os.makedirs(os.path.dirname(os.path.abspath(a.fragment)), exist_ok=True)
         K.write_text(a.fragment, fragment(data))
         print(f"뼈대 없는 판: {a.fragment}")
+        # 페이지를 올리는 호스트는 이 폴더의 파일을 prep/<파일 이름> 경로로 함께 올린다
+        for path in prep_page.write_pages(data["preps"], os.path.dirname(os.path.abspath(a.fragment)), back=""):
+            print(f"  함께 올릴 쪽: prep/{os.path.basename(path)} ← {path}")
 
 
 if __name__ == "__main__":
