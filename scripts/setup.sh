@@ -27,7 +27,8 @@ for a in "$@"; do
 done
 
 skill_name() { sed -n 's/^name:[[:space:]]*//p' "$1/SKILL.md" 2>/dev/null | head -1; }
-is_installed_copy() { case "$1" in */tools/jobhunt/lib/*/site-packages/jobhunt) return 0 ;; esac; return 1; }   # uv tool 설치본
+# uv tool 설치본: 코드(jobkit.py)와 references/ 가 한 폴더에 있다 (저장소는 scripts/ 아래). 도구 폴더 위치(UV_TOOL_DIR)와 무관하게 판별
+is_installed_copy() { [ -f "$1/jobkit.py" ] && [ -d "$1/references" ]; }
 
 plugin_installed() {   # 이 에이전트에 jobhunt 플러그인이 (사용자 범위로) 깔려 있나 — 그러면 플러그인이 스킬을 띄운다
   case "$1" in
