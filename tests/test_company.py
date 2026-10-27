@@ -96,10 +96,15 @@ class Info(unittest.TestCase):
         self.assertEqual(prep_page.problems(prep), [])
 
     def test_rate_limit(self):
-        err = io.StringIO()
-        with replay({COMPANY: {"status": 429}}), contextlib.redirect_stderr(err):
-            self.assertEqual(company.main([COMPANY]), 1)
-        self.assertIn("요청 제한", err.getvalue())
+        # 회사 쪽뿐 아니라 공고 상세·회사 검색의 429 도 응답 형식 변경이 아니라 요청 제한으로 알린다
+        for query, res in [(COMPANY, {COMPANY: {"status": 429}}),
+                           (f"{BASE}/wd/5102", {f"{BASE}/api/v4/jobs/5102": {"status": 429}}),
+                           ("가나다", {SEARCH + "%EA%B0%80%EB%82%98%EB%8B%A4": {"status": 429}})]:
+            err = io.StringIO()
+            with self.subTest(query=query), replay(res), contextlib.redirect_stderr(err):
+                self.assertEqual(company.main([query]), 1)
+                self.assertIn("요청 제한", err.getvalue())
+                self.assertNotIn("응답 형식 변경", err.getvalue())
 
 
 if __name__ == "__main__":

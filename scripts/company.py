@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -31,6 +32,21 @@ class Ambiguous(Exception):
     """이름으로 찾은 회사가 여럿."""
 
 
+def _get(url: str, what: str, accept: str = "application/json") -> str:
+    """본문. 200 이 아니면 RuntimeError: 요청 제한(403·429)은 응답 형식 변경이 아니라 잠시 뒤 다시 할 일이다."""
+    status, body = K.http_get(url, accept=accept)
+    if status != 200:
+        raise RuntimeError(f"원티드 {what} HTTP {status}" + (" (요청 제한: 잠시 뒤 다시)" if status in (403, 429) else ""))
+    return body
+
+
+def _json(url: str, what: str) -> Any:
+    try:
+        return json.loads(_get(url, what))
+    except json.JSONDecodeError:
+        raise K.ShapeError(f"원티드 {what} 응답이 JSON 이 아님") from None
+
+
 def company_id(query: str) -> int:
     """원티드 회사 번호. 회사 주소면 그 번호, 공고 주소면 공고의 회사, 아니면 이름으로 찾는다 (같은 이름이 하나일 때만)."""
     m = re.search(r"wanted\.co\.kr/company/(\d+)", query)
@@ -38,13 +54,14 @@ def company_id(query: str) -> int:
         return int(m.group(1))
     if "wanted.co.kr/wd/" in query:
         jid = K.url_part(r"/wd/(\d+)", query, 1)
-        job = K.get_json(f"{BASE}/api/v4/jobs/{jid}").get("job")
+        d = _json(f"{BASE}/api/v4/jobs/{jid}", "공고 상세")
+        job = d.get("job") if isinstance(d, dict) else None
         if not isinstance(job, dict) or not isinstance((job.get("company") or {}).get("id"), int):
             raise K.ShapeError("원티드 공고 상세에 job.company.id 없음")
         return job["company"]["id"]
     if re.match(r"https?://", query):
         raise ValueError(f"원티드 주소가 아님: {query} (회사 이름으로 찾거나 원티드 회사 주소를 주세요)")
-    d = K.get_json(f"{BASE}/api/chaos/search/v1/autocomplete?query={urllib.parse.quote(query)}")
+    d = _json(f"{BASE}/api/chaos/search/v1/autocomplete?query={urllib.parse.quote(query)}", "회사 검색")
     if not isinstance(d, dict) or not isinstance(d.get("companies"), list):
         raise K.ShapeError("원티드 회사 검색에 companies 없음")
     found = [(c["id"], c.get("name", "")) for c in d["companies"] if isinstance(c, dict) and "id" in c]
@@ -68,9 +85,7 @@ def info_table(page: str) -> Dict[str, str]:
 
 def fetch(cid: int) -> Tuple[str, Dict[str, str]]:
     """(회사 이름, 기업 정보 표)."""
-    status, page = K.http_get(f"{BASE}/company/{cid}", accept="text/html")
-    if status != 200:
-        raise RuntimeError(f"원티드 회사 쪽 HTTP {status}" + (" (요청 제한: 잠시 뒤 다시)" if status in (403, 429) else ""))
+    page = _get(f"{BASE}/company/{cid}", "회사 쪽", accept="text/html")
     title = re.search(r"<title>(.*?)(?: 기업정보| \|)", page, re.S)
     return (K.html_text(title.group(1)) if title else ""), info_table(page)
 
