@@ -106,6 +106,16 @@ class Cli(unittest.TestCase):
         os.symlink(clone, link)
         self.assertIn("다른 jobhunt 사본", run().stdout)
         self.assertEqual(os.path.realpath(link), os.path.realpath(clone))
+        # 예전 설치본(UV_TOOL_DIR 로 옮긴 도구 폴더라 경로에 tools/ 가 없음)은 살아 있어도 새 위치로 바꾼다
+        pkg = os.path.join(TMP, "envs", "jobhunt", "lib", "python3.12", "site-packages", "jobhunt")
+        os.makedirs(os.path.join(pkg, "references"), exist_ok=True)
+        for fn, text in (("SKILL.md", "---\nname: jobhunt\n---\n"), ("jobkit.py", "")):
+            with open(os.path.join(pkg, fn), "w", encoding="utf-8") as f:
+                f.write(text)
+        os.remove(link)
+        os.symlink(pkg, link)
+        self.assertIn("다시 연결함", run().stdout)
+        self.assertEqual(os.path.realpath(link), os.path.realpath(repo))
 
     def test_setup_skips_plugin_agents(self):
         """setup.sh: jobhunt 플러그인이 깔린 에이전트에는 링크를 만들지 않고, 이 설치가 만든 링크는 걷어 낸다."""

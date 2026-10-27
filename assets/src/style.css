@@ -3,8 +3,8 @@ html, body { margin: 0; background: #fff; }
 body { color: #2b3138; font: 14px/1.6 "Pretendard", "Noto Sans CJK KR", sans-serif; word-break: keep-all; }
 code { font-family: Menlo, monospace; font-size: .88em; }
 .capture { padding: 16px; background: #fff; }
-.flow { width: 820px; }
-.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; }
+.flow { width: 940px; }
+.steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 22px; }
 .step { position: relative; display: flex; flex-direction: column; padding: 17px 14px; border: 1px solid #e1e5ea; border-radius: 8px; }
 .step:not(:last-child)::after { content: "→"; position: absolute; right: -20px; top: 50%; color: #1e4fc2; font-size: 20px; }
 .number { color: #1e4fc2; font-size: 12px; font-weight: 700; letter-spacing: .08em; }

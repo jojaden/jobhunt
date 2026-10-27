@@ -109,6 +109,11 @@ main() {
   elif [ -e "$HOME_DIR" ] && [ ! -d "$HOME_DIR/data" ] && [ -n "$(ls -A "$HOME_DIR" 2>/dev/null)" ]; then
     die "$HOME_DIR 에 다른 파일이 있어 건드리지 않았습니다. 비우거나 JOBHUNT_HOME 으로 다른 폴더를 지정하세요."
   fi
+  # 저장소 폴더(git clone)에서 쓰던 사람이 업데이트하려고 실행한 경우: 새 설치(폴더 고르기)로 들어가지 않고 업데이트 명령을 알려 준다
+  if [ "$old_repo" = 0 ] && [ -z "$FIXED_HOME" ] && [ "$PWD" != "$HOME_DIR" ] && [ -e "$PWD/.git" ] && is_jobhunt "$PWD" \
+     && ! command -v jobhunt >/dev/null 2>&1 && [ ! -x "$HOME/.local/bin/jobhunt" ]; then
+    die "지금 폴더($PWD)는 jobhunt 저장소입니다. 이 폴더에서 쓰고 있다면 업데이트는 'python3 scripts/cli.py update' 입니다. 따로 설치하려면 다른 폴더에서 실행하거나 JOBHUNT_HOME 으로 개인 자료 폴더를 정하세요."
+  fi
 
   need curl curl
   need git git          # uv 가 git 저장소에서 설치할 때 쓴다
@@ -161,7 +166,7 @@ main() {
 ✓ 설치 끝 (jobhunt $new). 개인 자료: $HOME_DIR/data
   시작: cd $HOME_DIR && claude   (Codex 는 codex, 그 밖의 에이전트는 이 폴더에서 열고 "AGENTS.md 를 읽고 시작해줘")
   처음이면 에이전트에게 "처음 설정해줘" 라고 하면 목표·조건을 묻고 data/ 를 함께 채웁니다.
-  업데이트: 같은 설치 명령을 다시 실행
+  업데이트: jobhunt update
 EOF
 }
 

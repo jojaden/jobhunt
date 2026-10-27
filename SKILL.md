@@ -48,6 +48,7 @@ jobhunt report              posting report as one HTML file, plus a page per pre
 jobhunt company             company numbers from the Wanted company page (국민연금-based average salary, headcount, revenue, CEO) as YAML lines for a prep file
 jobhunt discover            company discovery (tech blogs · GitHub · Wanted · known companies → career site and ATS detection → sources.yaml)
 jobhunt weekly              the LLM-free part of the weekly scan (scan → alive → report)
+jobhunt update              update the tool to the new version (installed: fetch and install again; a clone on main: git pull); data and skill links stay
 jobhunt where               where the jobhunt home and the skill folder are
 references/sources.md       per-site collection method (endpoints, body location, closing check)
 references/scoring.md       posting scoring (classification, calculation, calibration)
