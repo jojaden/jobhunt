@@ -16,7 +16,7 @@
 <p align="center">
   <a href="./README.md">한국어</a> | <a href="./README.en.md">English</a>
   <br/>
-  <a href="#-preview">Preview</a> · <a href="#-quick-start">Quick Start</a> · <a href="#-1-find-postings">Find</a> · <a href="#-2-fit-evaluation">Evaluate</a> · <a href="#-3-tailored-resume">Tailor</a> · <a href="#-personalization-that-compounds">Personalization</a> · <a href="#-project-structure">Structure</a>
+  <a href="#-preview">Preview</a> · <a href="#-quick-start">Quick Start</a> · <a href="#-1-find-postings">Find</a> · <a href="#-2-fit-evaluation">Evaluate</a> · <a href="#-3-prepare-for-a-posting">Prepare</a> · <a href="#-4-tailored-resume">Tailor</a> · <a href="#-personalization-that-compounds">Personalization</a> · <a href="#-project-structure">Structure</a>
 </p>
 
 ## 📖 Overview
@@ -36,7 +36,7 @@
 - 🏢 **Widen the company list:** Finds companies that post mainly on their own career sites. It ranks them by reputation and size using tech-blog and GitHub-org lists, Wanted company data (pay band, headcount) and a list of well-known companies, then locates each career site and its hiring system (greetinghr, Ninehire, Greenhouse …) and adds it to the scan.
 - 🔎 **Find postings:** Collects from Wanted, Jumpit, LinkedIn, Saramin, Remember, Greenhouse boards (Daangn, Coupang, KRAFTON …), Toss, NHN, Kakao, greetinghr, Ninehire, Workday and Workable companies, and in-house career sites with no list on the first screen (through a list API found once during discovery), in one run. It filters by title, required years, location, duplicates across sites (company aliases unify Korean and English names), blocked companies and re-apply cooldowns, and flags postings that may be the same opening under a different name so they are judged once.
 - 📊 **Score the fit:** Checks your location, English and tech-stack rules against quoted posting text, maps every requirement to your own experience, and scores 1–5. Required vs. preferred is told apart by Korean sentence endings ("~필요해요" vs. "~좋아요").
-- 🧭 **Prepare:** for each posting you pick from the report, researches the company (leaders, culture, the traits it hires for, reputation, interview reports, 국민연금-based headcount and average salary, revenue and operating-profit trend, recent issues) and the role with sources, and lays out the hiring stages and test format, likely questions from your own record with follow-ups, and what you still need to prepare. The posting's row in the report opens that page.
+- 🧭 **Prepare:** for each posting you pick from the report, researches the company (leaders, culture, the traits it hires for, reputation, interview reports, 국민연금-based headcount and average salary, revenue and operating-profit trend, recent issues) and the role with sources, and lays out the hiring stages and test format, likely questions from your own record with follow-ups, and what you still need to prepare. Company numbers come from the Wanted company page without a key; with free API keys, 국민연금 (headcount, salary estimate, hires and leavers) and DART (revenue and operating profit for the last three years) make them more exact. The posting's row in the report opens that page.
 - 📝 **Tailor the resume:** Turns the evaluation's plan (projects to lead with, skill overlap, wording) into a per-posting YAML, then builds it in one of three designs as an A4 PDF. Every build is checked automatically.
 - 📋 **Track applications:** Shows evaluated and triage-passed postings in a single table with "applied?" and "still open?" columns.
 - 📈 **Personalization that compounds:** Corrections like "this score is too high" or "you missed my X experience", plus application outcomes, accumulate in dated files under `data/`.
@@ -198,6 +198,7 @@ Where things end up after installing:
 | Your data folder (default `~/jobhunt`) | Only `data/` (your records) and short `AGENTS.md` and `CLAUDE.md` files that point to the installed instructions; no tool files |
 | Agent connection | Links `~/.claude/skills/jobhunt` and `~/.codex/skills/jobhunt`, or the plugin |
 | Remembered folder | `~/.config/jobhunt/home` (only for a non-default folder) |
+| API keys (optional) | `~/.config/jobhunt/keys` (only if stored with `jobhunt keys set`, mode 600). The DART company list is kept a week in `~/.cache/jobhunt/` |
 | Resume build environment | Playwright Chromium, Korean fonts, poppler |
 
 If you switched from an old git install, the data folder also has `.old-repo/` (the old tool files, moved aside) and, if you had a schedule, `scripts/weekly.sh` (a small file that forwards to the new command).
@@ -374,7 +375,7 @@ The tool (`SKILL.md`, `modes/`, `scripts/`, `references/`) is installed and upda
 | Project evidence and confirmed facts | `data/experience/` |
 | House rules, report format, resume wording decisions | `data/preferences/standing.md` |
 | Search settings, priority companies, inbox, seen-posting history | `data/search/` |
-| Posting text and evaluations | `data/job_postings/` |
+| Posting text, evaluations, preparation files | `data/job_postings/` |
 | Applications, outcomes, cover-letter answers | `data/applications/` |
 | Interview practice sheets, behavioral stories, interview log | `data/interview/` |
 
@@ -442,6 +443,7 @@ data/                        Your data (git-ignored; only structure and examples
 - Mistakes like `git add -f` are caught too. CI checks the tracked `data/` files on every PR, and the pre-commit hook (enable with `git config core.hooksPath .githooks`) stops a commit whose content includes the name, email, phone or school from `profile.yaml` (`scripts/privacy_check.py`).
 - Your name and contact info are never hard-coded. They're read from `data/profile/profile.yaml` at build time.
 - The Wanted, Jumpit, LinkedIn guest and career-site JSON endpoints are unofficial; they're used for personal purposes with a delay between requests.
+- 공공데이터포털 and OpenDART keys are personal, each tied to an account and its daily quota, so they never go into the repository or `data/`. They live only in `~/.config/jobhunt/keys` (mode 600) or environment variables, and are never printed on screen or in error messages.
 
 ## ⚖️ Acceptable use and disclaimer
 
