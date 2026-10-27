@@ -25,6 +25,13 @@ for _k, _v in K.P.items():                     # 같은 dict 를 고친다 (공�
 for _v in K.P.values():
     os.makedirs(os.path.dirname(_v), exist_ok=True)
 shutil.copy(os.path.join(FIXTURES, "sources.yaml"), K.P["sources"])
+# API 키와 DART 고유번호 캐시도 사용자 것 대신 임시 폴더 (키는 테스트가 넣을 때만 있다)
+import dart  # noqa: E402
+import keys  # noqa: E402
+keys.FILE = os.path.join(TMP, "config", "keys")
+dart.CACHE = os.path.join(TMP, "cache", "dart-corpcode.xml")
+for _n in keys.KEYS.values():
+    os.environ.pop(_n["env"], None)
 
 
 def load_fixture(*parts):

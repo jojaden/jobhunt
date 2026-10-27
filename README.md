@@ -250,7 +250,8 @@ jobhunt weekly                       # 수집 → 마감 확인 → 현황표 (L
 jobhunt scan --dry-run               # 파일을 쓰지 않고 수집 결과만 보기
 jobhunt scan --add found.yaml        # 손으로 찾은 공고를 중복 확인·필터를 거쳐 대기함에 (에이전트가 씀)
 jobhunt report                       # 공고 현황표 HTML (data/search/reports/postings.html)
-jobhunt company 가나다랩              # 원티드 회사 정보(평균연봉·국민연금 인원·매출)를 준비 자료 YAML 로
+jobhunt company 가나다랩              # 회사 숫자를 준비 자료 YAML 로 (원티드 회사 정보, 키가 있으면 국민연금·DART 까지)
+jobhunt keys                         # 공공데이터포털·OpenDART 키 상태와 발급 방법 (jobhunt keys set dart: 키 넣기)
 jobhunt tracker report --alive       # 같은 내용을 텍스트 표로 (마감 여부 포함)
 jobhunt tracker set 3 지원함          # 지원 기록
 jobhunt render data/resumes/<이름>.yaml   # 이력서 빌드 (yaml → PDF · PNG, 검사까지)
@@ -312,6 +313,15 @@ AI 에이전트가 공고를 한 줄씩 분류하면(해 본 일인지, 필수 �
 | 전형과 시험 | 전형별로 보는 것과 준비, 코딩테스트·과제·라이브 코딩의 예상 형식과 그 근거, 면접 후기 |
 | 예상 질문 | 이력서·공고·면접 후기에서 나올 질문 8~15개, 꼬리질문 2단계, 답의 뼈대와 근거 파일 |
 | 더 준비할 것 | 할 일 한 줄씩, 이유, 우선순위(높음·보통·낮음), 끝냈는지 |
+
+회사 숫자는 `jobhunt company`가 원티드 회사 정보에서 키 없이 가져옵니다. 무료 API 키를 받아 두면 더 정확한 숫자가 붙습니다. 키는 계정마다 하루 한도가 걸려 있어 저장소에 넣지 않고, 사람마다 자기 키를 씁니다. 처음 준비할 때 에이전트가 키 없이 갈지, 키를 받고 갈지 묻습니다.
+
+| 키 | 더 붙는 것 | 발급 |
+|---|---|---|
+| [공공데이터포털](https://www.data.go.kr/data/3046071/openapi.do) | 국민연금 가입자 수(1년 전과 비교), 그달 고지액으로 추정한 평균연봉, 최근 1년 입사·퇴사 | 회원가입 → "국민연금공단_국민연금 가입 사업장 내역" 활용신청(자동 승인, 하루 1만 건) → 마이페이지의 일반 인증키(Decoding). 발급 뒤 1~2시간쯤 지나야 쓰일 수 있음 |
+| [OpenDART](https://opendart.fss.or.kr) | 대표자, 최근 3년 매출·영업이익(사업보고서, 비상장사는 감사보고서의 손익계산서) | 인증키 신청 → 사용자 구분 "개인" → 이메일 인증(바로 발급, 하루 2만 건) → 로그인 → 인증키 신청/관리 → **오픈API 이용현황**의 API Key(40자리) |
+
+받은 키는 터미널에서 `jobhunt keys set data_go_kr`, `jobhunt keys set dart`로 넣습니다(입력이 화면에 보이지 않고, `~/.config/jobhunt/keys`에 권한 600으로 저장). 환경 변수 `JOBHUNT_DATA_GO_KR_KEY`·`JOBHUNT_DART_KEY`도 됩니다. `jobhunt keys`는 키가 쓰이는지 확인하고, 없는 키의 발급 방법을 보여 줍니다. 키를 대화창에 붙여 넣지 마세요.
 
 `jobhunt report`가 준비 자료마다 공고별 쪽을 만들고 현황표의 그 공고 줄에 "준비 자료 · 남은 n" 버튼을 붙입니다. 영업이익률과 전년 대비는 스크립트가 계산합니다. 준비가 끝나면 이 공고에 맞춰 이력서를 준비할지 묻고, 이력서·자소서·면접 모드가 이 파일을 읽습니다.
 
@@ -389,6 +399,8 @@ scripts/
   scan.py · providers/       공고 수집 (사이트별 모듈)
   discover.py                회사 찾기 (채용 사이트·채용 시스템 판별 → 수집 대상 추가)
   company.py                 회사 숫자 (원티드 회사 정보 → 준비 자료 YAML, jobhunt company)
+  nps.py · dart.py           국민연금 가입 사업장 내역 · OpenDART (사용자 키가 있을 때 company 가 부름)
+  keys.py                    API 키 상태 · 발급 방법 · 저장 (jobhunt keys)
   alive.py                   마감 확인
   score.py                   판정 파일 → 점수 계산, 대기함 반영 (score init 은 판정 뼈대)
   tracker.py                 지원 현황 기록, 통합 현황표

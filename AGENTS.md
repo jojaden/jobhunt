@@ -70,7 +70,8 @@ python3 scripts/eval_golden.py <folder>             # classification drift vs ex
 python3 scripts/tracker.py add|set|report [--alive]
 python3 scripts/cover_check.py <cover.yaml>          # cover-letter answers: character counts vs limit + style rules
 python3 scripts/discover.py collect|probe|report|missing|set <file.tsv>|promote [--min S] [--dry-run]
-python3 scripts/company.py <Wanted posting URL | company URL | name> [--source N]   # company numbers → YAML lines for a prep file
+python3 scripts/company.py <Wanted posting URL | company URL | name> [--source N] [--dart CODE] [--nps-addr PART]   # company numbers → YAML lines for a prep file (국민연금 · DART too when keys exist)
+python3 scripts/keys.py [set data_go_kr|dart]     # the user's own API keys: status and how to get them / store one (hidden input)
 
 python3 assets/src/render.py                      # regenerate README preview PNGs
 ```
@@ -98,6 +99,7 @@ Most scripts read and write real files under `data/`; use `--dry-run` where offe
 - **Language split:** agent instruction files (`SKILL.md`, `modes/`, `references/*.md`) are English; everything user-facing is Korean: CLI output, script docstrings/comments, `data/` files, resume text, and Korean strings quoted in the instruction files (state values, headings), which must stay verbatim because scripts match them. `README.md` (ko) and `README.en.md` are kept in sync.
 - Scripts are stdlib + PyYAML only for collection (`check_links.py` is stdlib-only by design); keep it that way.
 - Collection endpoints are unofficial: keep the request delay and treat "missing from the public list" as not closed; closing is decided by per-site detail API/HTTP status.
+- **API keys are per user.** 공공데이터포털 and OpenDART keys are tied to one account and its daily quota, so they never go into the repository, `data/`, tests or logs: `scripts/keys.py` reads them from the environment or `~/.config/jobhunt/keys` (mode 600), and errors never print a URL that carries one. Tests point that file at a temp folder (`tests/support.py`).
 
 ## Code Review Rules
 
@@ -118,6 +120,11 @@ For any agent reviewing a pull request here (Codex code review reads this sectio
 
 - Flag new code that compares or dedups posting URLs as raw strings. LinkedIn changes the title slug of the same posting.
   Safe path: compare with `jobkit.url_key`; keep the stored URL as collected.
+
+### API keys
+
+- Flag code that writes a 공공데이터포털 or OpenDART key into a tracked file, `data/`, a fixture, output or an error message (a request URL carries the key as a query parameter).
+  Safe path: read keys only through `scripts/keys.py`; error messages name the API and the status, not the URL.
 
 ### Personal data
 
