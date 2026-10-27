@@ -45,7 +45,8 @@ jobhunt tracker             application log (add/set) and combined report table 
 jobhunt score               posting score (line-level judgment file → per-item scores)
 jobhunt cover-check         cover-letter answers: character counts per limit + style rules
 jobhunt report              posting report as one HTML file, plus a page per prepared posting
-jobhunt company             company numbers from the Wanted company page (국민연금-based average salary, headcount, revenue, CEO) as YAML lines for a prep file
+jobhunt company             company numbers as YAML lines for a prep file: the Wanted company page without a key; with the user's keys also 국민연금 (headcount, salary estimate, hires and leavers) and DART (CEO, yearly revenue and operating profit from 사업보고서 or 감사보고서)
+jobhunt keys                the user's own API keys (공공데이터포털, OpenDART): status, how to get them, `set <name>` to store one
 jobhunt discover            company discovery (tech blogs · GitHub · Wanted · known companies → career site and ATS detection → sources.yaml)
 jobhunt weekly              the LLM-free part of the weekly scan (scan → alive → report)
 jobhunt update              update the tool to the new version (installed: fetch and install again; a clone on main: git pull); data and skill links stay

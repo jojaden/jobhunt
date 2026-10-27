@@ -252,7 +252,8 @@ jobhunt weekly                       # collect → liveness check → overview (
 jobhunt scan --dry-run               # see what would be collected without writing files
 jobhunt scan --add found.yaml        # put postings found by hand through dedup and filters into the queue (the agent uses it)
 jobhunt report                       # posting report as HTML (data/search/reports/postings.html)
-jobhunt company 가나다랩              # Wanted company info (average salary, 국민연금 headcount, revenue) as prep-file YAML
+jobhunt company 가나다랩              # company numbers as prep-file YAML (Wanted company info; 국민연금 and DART too with keys)
+jobhunt keys                         # 공공데이터포털 / OpenDART key status and how to get them (jobhunt keys set dart: store one)
 jobhunt tracker report --alive       # the same rows as a text table
 jobhunt tracker set 3 지원함          # record an application
 jobhunt render data/resumes/<name>.yaml   # build a resume (YAML → PDF · PNG, checks included)
@@ -314,6 +315,15 @@ Say "A사, B사 준비해줘" after reading the report and [`modes/prep.md`](mod
 | Stages and tests | what each stage checks and how to prepare, the likely form of coding tests, take-home tasks and live coding with its basis, interview reports |
 | Likely questions | 8–15 questions from your resume, the posting and interview reports, two follow-ups deep, the skeleton of the answer and its evidence file |
 | What to prepare | one task per line, why, priority (high, normal, low), done or not |
+
+`jobhunt company` takes the company numbers from the Wanted company page without a key. Free API keys add more exact numbers. A key is tied to one account and its daily quota, so none ships with the repository: each person uses their own. On the first preparation the agent asks whether to go on without keys or get them first.
+
+| Key | What it adds | How to get it |
+|---|---|---|
+| [공공데이터포털](https://www.data.go.kr/data/3046071/openapi.do) | 국민연금 headcount (against a year earlier), an average salary estimated from the month's contributions, hires and leavers over the last year | sign up → apply for "국민연금공단_국민연금 가입 사업장 내역" (approved automatically, 10,000 calls a day) → the general key (Decoding) under My Page. It can take an hour or two after issue before it works |
+| [OpenDART](https://opendart.fss.or.kr) | CEO, revenue and operating profit for the last three years (from 사업보고서, or the 손익계산서 of 감사보고서 for unlisted companies) | 인증키 신청 → user type "개인" → email confirmation (issued at once, 20,000 calls a day) → log in → 인증키 신청/관리 → the 40-character API Key under **오픈API 이용현황** |
+
+Store each key in a terminal with `jobhunt keys set data_go_kr` and `jobhunt keys set dart` (hidden input, saved to `~/.config/jobhunt/keys` with mode 600), or set `JOBHUNT_DATA_GO_KR_KEY` / `JOBHUNT_DART_KEY`. `jobhunt keys` tests the keys and shows how to get the missing ones. Don't paste a key into the conversation.
 
 `jobhunt report` builds a page per preparation file and adds a "준비 자료 · 남은 n" button to the posting's row. The script computes operating margin and year-over-year growth. When preparation is done the agent asks whether to tailor the resume for the posting, and the resume, cover letter and interview modes read this file.
 
@@ -391,6 +401,8 @@ scripts/
   scan.py · providers/       Posting collection (one module per site)
   discover.py                Company discovery (find career sites and hiring systems, add them to the scan)
   company.py                 Company numbers (Wanted company info → prep-file YAML, jobhunt company)
+  nps.py · dart.py           국민연금 workplace records · OpenDART (called by company when the user has keys)
+  keys.py                    API key status, how to get keys, storing them (jobhunt keys)
   alive.py                   Open/closed check
   score.py                   Judgment file → score, applied to the queue (score init drafts a judgment)
   tracker.py                 Application tracker and combined overview
