@@ -1,0 +1,95 @@
+# 공고 준비 자료 예시 (modes/prep.md). 회사·사람·숫자는 모두 가상이다.
+# 실제 파일: data/job_postings/<공고 파일 이름>.prep.yaml — 공고 현황표가 posting.url 로 공고 줄과 잇는다.
+# 사실마다 source 에 아래 sources 의 번호를 단다. 확인하지 못한 것은 값 대신 "확인 못 함".
+posting:
+  company: 가나다페이
+  title: Server Engineer (정산 플랫폼)
+  url: https://example.com/jobs/0
+  file: data/job_postings/2026-10-20_가나다페이_Server-Engineer.md
+updated: 2026-10-20
+summary: 가맹점 12만 곳의 정산을 맡는 결제 회사. 흑자 2년차이고, 정산 팀은 Go 로 배치를 이벤트 기반으로 바꾸는 중이다.
+fit:
+  - 정산 정합성과 멱등 처리가 주 업무다. 단일 SQL CAS 로 상태 뒤집힘을 0건으로 만든 경험과 같은 문제다.
+  - 팀 주력 언어가 Go 라 바로 기여할 수 있다.
+
+prepare:
+  - { item: 결제 도메인 용어(승인·매입·정산·대사) 정리, why: 결제는 처음이고 1차 면접에서 도메인 이해를 본다는 후기, priority: 높음, done: false }
+  - { item: 멱등 키 설계 답변 연습 (꼬리질문 2단계), why: "공고 필수 요건, 예상 질문 1", priority: 높음, done: false }
+  - { item: 코딩테스트 — 프로그래머스 Lv.2~3 Go 로 5문제, why: 1차 온라인 코딩테스트 90분 (후기 2건), priority: 보통, done: true }
+  - { item: 이력서 수치 근거 다시 보기, why: 숫자마다 측정 방법을 묻는다는 후기, priority: 보통, done: false }
+
+process:
+  stages:
+    - { name: 서류, what: 이력서·포트폴리오, prep: 정산·정합성 프로젝트를 맨 앞에 }
+    - { name: 코딩테스트, what: 온라인 90분 2문제, prep: 위 '더 준비할 것' 3 }
+    - { name: 1차 직무 면접, what: "이력서 깊이, 결제 도메인 이해", prep: 예상 질문 1–3 }
+    - { name: 2차 컬처 면접, what: "협업, 이직 사유", prep: 행동 질문 사례 2개 }
+  tests:
+    - { kind: 코딩테스트, guess: "온라인 90분, 알고리즘 2문제 (언어 자유)", basis: 면접 후기 2건이 같은 형식, source: 4 }
+    - { kind: 과제, guess: 없음으로 보임, basis: 공고 전형에 과제 단계 없음, source: 1 }
+  reports:
+    - { stage: 1차 직무 면접, text: "정산이 하루 늦으면 무엇이 깨지는지, 재처리를 어떻게 막는지 물었다", source: 4 }
+
+questions:
+  - q: 같은 정산 요청이 두 번 들어오면 어떻게 막았나요?
+    from: 이력서
+    why: CAS 프로젝트와 공고 필수 요건 '멱등 처리'가 겹친다
+    follow: ["DB 유니크 제약과 무엇이 다른가요?", "키를 어디서 만들고 언제 지우나요?"]
+    answer: 상태 전이를 한 문장 SQL CAS 로 묶음 → 세대 번호로 늦은 쓰기 거절 → 뒤집힘 0건 (project_index.yaml#cas)
+  - q: 하루치 정산 배치가 중간에 죽으면 어디서부터 다시 하나요?
+    from: 면접 후기
+    why: 1차 면접에서 같은 질문이 나왔다는 후기
+    follow: ["재처리 중 새 요청이 들어오면?"]
+    answer: 확인 못 함 — 비슷한 경험을 정리해야 함 ('더 준비할 것' 1)
+  - q: 결제 도메인은 처음인데 어떻게 따라잡을 건가요?
+    from: 공고
+    why: 우대 요건 '결제 도메인 경험' 을 채우지 못함
+    follow: ["지난 3개월 안에 새 도메인을 익힌 사례는?"]
+    answer: 재해복구 도메인을 6개월에 익힌 순서 (facts.md)
+
+role:
+  wants:
+    - { skill: Go, kind: 필수, mine: 충족, evidence: 5년, prep: "" }
+    - { skill: 트랜잭션·동시성 정합성, kind: 필수, mine: 충족, evidence: project_index.yaml#cas, prep: "" }
+    - { skill: Kafka, kind: 우대, mine: 부분, evidence: RabbitMQ 운영 경험, prep: Kafka 와 RabbitMQ 의 순서 보장 차이 정리 }
+    - { skill: 결제 도메인, kind: 우대, mine: 없음, evidence: "", prep: "'더 준비할 것' 1" }
+
+company:
+  product:
+    - 온라인 가맹점용 결제·정산 서비스. 가맹점 12만 곳 (회사 소개, 2026-09)
+  leaders:
+    - { name: 김가나, role: 대표, note: "창업자, 결제 대행사 출신", source: 2 }
+  culture:
+    - 모든 배포는 정산 대사 테스트를 통과해야 나간다 (기술 블로그)
+  talent:
+    - "\"숫자로 말하는 사람\" (채용 페이지 인재상)"
+  numbers:
+    - { label: 국민연금 가입자, value: 180명, as_of: 2026-09, source: 3 }
+    - { label: 평균연봉 (국민연금 기반 추정), value: "6,100만 원", as_of: 2026-09, source: 3, note: 소득 상한 때문에 고연봉자는 낮게 잡힘 }
+    - { label: 최근 1년 입사 · 퇴사, value: 입사 42명 · 퇴사 25명, as_of: 2026-09, source: 3 }
+  finance:            # 단위: 억 원
+    - { year: 2023, revenue: 410, operating_profit: -35, source: 5 }
+    - { year: 2024, revenue: 520, operating_profit: 22, source: 5 }
+    - { year: 2025, revenue: 655, operating_profit: 61, source: 5 }
+  reviews:
+    - { site: 잡플래닛, rating: 3.7, count: 64, text: "장점 성장·동료, 단점 정산 마감 주간 야근", source: 4 }
+  issues:
+    - { date: 2026-05, text: 해외 결제 대행 라이선스 취득, source: 2 }
+
+team:
+  does: [가맹점 정산 계산과 지급, 대사(외부 기관 내역과 맞추기)]
+  stack: [Go, PostgreSQL, Kafka, Kubernetes]
+  scale: [하루 정산 건수 확인 못 함]
+
+red_flags:
+  - 정산 마감 주간에 야근이 몰린다는 리뷰가 여러 건 (4)
+reverse_questions:
+  - 배치를 이벤트 기반으로 바꾸는 작업은 지금 어디까지 왔나요?
+  - 정산 오류가 나면 누가 어떤 순서로 대응하나요?
+
+sources:
+  - { id: 1, title: 공고 본문, url: "https://example.com/jobs/0", read: 2026-10-20 }
+  - { id: 2, title: 회사 소개·보도자료, url: "https://example.com/about", read: 2026-10-20 }
+  - { id: 3, title: 원티드 회사 정보 (국민연금 기반), url: "https://example.com/company", read: 2026-10-20 }
+  - { id: 4, title: 잡플래닛 리뷰·면접 후기 (공개 부분), url: "https://example.com/reviews", read: 2026-10-20 }
+  - { id: 5, title: 감사보고서 (DART), url: "https://example.com/dart", read: 2026-10-20 }

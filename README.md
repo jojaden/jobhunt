@@ -44,7 +44,7 @@
 
 ### 공고 현황표 (`jobhunt report`)
 
-가상 회사로 만든 견본입니다(`jobhunt report --demo`). 등본 같은 괘선 서식에 판정 구간별 대장, 지원 권장 도장, 마감 D-일수, 항목별 점수 붙임이 들어갑니다. HTML 한 파일이라 어떤 브라우저·AI 에이전트에서도 열리고, HTML 페이지를 올려 주는 곳(예: Claude Artifact)에는 `--fragment` 판을 올립니다. 디자인 기준은 [`DESIGN.md`](DESIGN.md).
+가상 회사로 만든 견본입니다(`jobhunt report --demo`). 등본 같은 괘선 서식에 판정 구간별 대장, 지원 권장 도장, 마감 D-일수, 항목별 점수 붙임이 들어갑니다. HTML 한 파일이라 어떤 브라우저·AI 에이전트에서도 열리고, HTML 페이지를 올려 주는 곳(예: Claude Artifact)에는 `--fragment` 판을 올립니다. 디자인 기준은 [`DESIGN.md`](DESIGN.md). 준비한 공고는 줄마다 "준비 자료" 버튼으로 그 공고의 준비 쪽(더 준비할 것, 전형과 시험, 예상 질문, 직무, 회사 숫자와 출처)으로 넘어갑니다.
 
 <p align="center"><img src="assets/report.ko.png" alt="공고 현황표 견본: 판정별 결재란, 지원 권장 대장과 인주 도장, 항목별 점수 붙임" width="720"/></p>
 
@@ -229,11 +229,12 @@ curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | b
 |---|---|
 | "처음 설정해줘" | 목표 역할·연봉·근무지·제외 조건을 묻고 `data/profile/`에 기준을 만듭니다 |
 | "공고 찾아줘" | `jobhunt weekly`로 수집한 뒤, 새 공고를 내 기준으로 1차 선별해 현황표로 보여 줍니다 |
+| (현황표를 보고) "A사, B사 준비해줘" | 고른 공고마다 회사(경영진·문화·인재상·평판·면접 후기·국민연금 기반 인원과 평균연봉·매출과 영업이익 추세·이슈)와 직무를 조사하고, 전형과 시험 형식, 내 이력에서 나올 예상 질문, 더 준비할 것을 정리합니다. 현황표의 그 공고 줄에 "준비 자료" 버튼이 생기고, 끝나면 이력서를 맞출지 묻습니다 |
 | (공고 URL을 붙여넣고) "이 공고 어때?" | 판정과 점수, 조건 확인, 요건과 내 경험 대응표, 지원 전략 |
 | "이 공고용 이력서 만들어줘" | 평가의 계획으로 yaml 작성 → PDF 빌드 → 검사 → 수정 반복 |
 | "자소서 써줘" / "지원서 문항 답 써줘" | 문항별 구조로 초안 작성, 글자 수 제한·문체 검사 (`jobhunt cover-check`) |
-| "이 회사 조사해줘" | 제품·팀·기술·개발 문화·회사 상태·경고 신호를 출처와 함께 정리 (지원 동기·역질문 재료) |
-| "면접 준비해줘" | 전형별 준비, 이력서에서 나올 질문과 꼬리질문, 기술 질문, 행동 질문, 역질문 연습지 |
+| "이 회사 조사해줘" | 위 준비 자료 중 회사 부분만: 제품·경영진·문화·숫자·평판·이슈·경고 신호를 출처와 함께 정리 |
+| "면접 준비해줘" | 준비 자료에서 시작해 제출한 이력서 기준으로 전형별 준비, 이력서에서 나올 질문과 꼬리질문, 기술 질문, 행동 질문, 역질문 연습지 |
 | "모의 면접 해줘" | 면접관처럼 한 문항씩 묻고 내 답에 꼬리질문, 답마다 짧은 피드백 |
 | "지원했어" / "서류 붙었어" / "면접 봤어" | 현황표 갱신, 재지원 쿨다운, 면접 기록, 결과가 쌓이면 원인 분석과 기준 조정 제안 |
 | "메뉴" (또는 모드 이름만) | 쓸 수 있는 모드와 지금 할 만한 다음 단계 |
@@ -361,7 +362,7 @@ LEGAL_DISCLAIMER.md          사용 범위와 면책
 CHANGELOG.md                 변경 기록 (버전마다 data/ 이전 안내)
 CONTRIBUTING.md              기여 안내 (개발 환경, 확인 방법, 새 수집기 추가)
 SKILL.md                     스킬 진입점, 요청을 모드로 연결
-modes/                       공통 규칙과 모드별 절차 (onboard · scan · evaluate · tailor · cover · deep · interview · track · outcome)
+modes/                       공통 규칙과 모드별 절차 (onboard · scan · prep · evaluate · tailor · cover · interview · track · outcome)
 scripts/
   cli.py                     jobhunt 명령 (명령마다 아래 스크립트를 그대로 실행)
   jobkit.py                  공통 핵심: 경로, HTTP, 필터, 중복 판정, 수집 기록·대기함·지원 표 읽기
@@ -371,6 +372,7 @@ scripts/
   score.py                   판정 파일 → 점수 계산, 대기함 반영 (score init 은 판정 뼈대)
   tracker.py                 지원 현황 기록, 통합 현황표
   report_html.py             공고 현황표 HTML (jobhunt report)
+  prep_page.py               공고 준비 자료 쪽 HTML (현황표가 함께 만듦)
   cover_check.py             자기소개서 문항 글자 수·문체 검사
   eval_golden.py             판정 정답 세트와 에이전트 판정 비교 (분류 규칙을 바꿨을 때)
   weekly.py                  주간 스캔 (scan → alive → report, weekly.sh 는 예전 경로용)

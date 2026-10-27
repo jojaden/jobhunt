@@ -1,7 +1,7 @@
 # Mode: tailor — resume tailored to a posting
 
 Write a resume yaml tailored to one posting and build it into a PDF. Read `modes/_shared.md` first.
-If the posting went through evaluation (`modes/evaluate.md`), use the requirement map and emphasis in `data/job_postings/<posting>.eval.md` as is.
+If the posting went through evaluation (`modes/evaluate.md`), use the requirement map and emphasis in `data/job_postings/<posting>.eval.md` as is. If it was prepared (`modes/prep.md`), also read `<posting>.prep.yaml`: `role.wants` (what the team asks for and the user's gaps) sets emphasis and terms, `questions` shows which resume lines will be probed (only claim what the user can defend two follow-ups deep), and `fit` and `company` shape the SUMMARY lead.
 
 ## Steps
 

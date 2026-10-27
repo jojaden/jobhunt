@@ -13,7 +13,7 @@ Pick the order that fits the question; never a chronology of life events.
 
 | Question type | Order |
 |---|---|
-| 지원 동기 / 입사 후 포부 | what in my work connects to this team's problem (one fact with a number) → why this company, from company research (`modes/deep.md`) → what I would do first |
+| 지원 동기 / 입사 후 포부 | what in my work connects to this team's problem (one fact with a number) → why this company, from company research (the prep file, `modes/prep.md`) → what I would do first |
 | 경험 / 문제 해결 / 성장 | situation → my role and actions → how the problem was solved (cause, options, choice) → result with a number → what I changed afterwards |
 | 협업 / 갈등 | situation → each side's position → what I did → outcome → what I do differently now |
 | 실패 | what I decided → what went wrong → how I found out → what I changed in the system or my habit |

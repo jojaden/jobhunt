@@ -46,7 +46,7 @@
 
 ### Posting report (`jobhunt report`)
 
-A sample built from fictional companies (`jobhunt report --demo`). It is laid out like a Korean certificate form: a ruled ledger per verdict band, a red seal on recommended postings, D-day marks for deadlines, and an itemised-score attachment per row. It is one HTML file, so any browser or AI agent can open it; hosts that publish HTML pages (e.g. Claude Artifacts) get the `--fragment` version. Design rules live in [`DESIGN.md`](DESIGN.md).
+A sample built from fictional companies (`jobhunt report --demo`). It is laid out like a Korean certificate form: a ruled ledger per verdict band, a red seal on recommended postings, D-day marks for deadlines, and an itemised-score attachment per row. It is one HTML file, so any browser or AI agent can open it; hosts that publish HTML pages (e.g. Claude Artifacts) get the `--fragment` version. Design rules live in [`DESIGN.md`](DESIGN.md). Prepared postings get a "준비 자료" button on their row that opens the posting's preparation page (what to prepare, stages and tests, likely questions, the role, company numbers with sources).
 
 <p align="center"><img src="assets/report.ko.png" alt="Posting report sample: verdict ledger, recommended postings with seals, itemised score attachment" width="720"/></p>
 
@@ -231,11 +231,12 @@ Features that differ between agents, such as web search (Firecrawl, …) or publ
 |---|---|
 | "처음 설정해줘" (set me up) | Asks for target roles, salary, location and deal-breakers, and writes your criteria to `data/profile/` |
 | "공고 찾아줘" (find postings) | Runs `jobhunt weekly`, triages new postings against your criteria, shows the overview table |
+| (after the report) "A사, B사 준비해줘" (prepare these) | For each chosen posting: company research (leaders, culture, values, reviews, interview reports, 국민연금-based headcount and average salary, revenue and operating profit by year, recent issues) and role research, the hiring stages and test format, likely questions from your own record, and what you still need to prepare. The report row gets a "준비 자료" button, then it asks whether to tailor the resume |
 | (paste a URL) "이 공고 어때?" (how is this one?) | Verdict and score, condition checks, requirements-vs-experience map, application strategy |
 | "이 공고용 이력서 만들어줘" (make a resume for it) | Writes the YAML from the plan → builds the PDF → checks → revises |
 | "자소서 써줘" (write the cover letter) | Drafts each application question with a fitting structure, checks character limits and style (`jobhunt cover-check`) |
-| "이 회사 조사해줘" (research this company) | Product, team, stack, engineering culture, company state and red flags, with sources (material for motivation and reverse questions) |
-| "면접 준비해줘" (prepare the interview) | A practice sheet: per-stage prep, resume-driven questions with follow-ups, technical and behavioral questions, reverse questions |
+| "이 회사 조사해줘" (research this company) | Only the company part of the preparation above: product, leaders, culture, numbers, reviews, issues and red flags, with sources |
+| "면접 준비해줘" (prepare the interview) | Starts from the preparation file and the resume you submitted: per-stage prep, resume-driven questions with follow-ups, technical and behavioral questions, reverse questions |
 | "모의 면접 해줘" (mock interview) | Asks one question at a time like an interviewer, follows up on your answer, short feedback after each |
 | "지원했어" / "서류 붙었어" / "면접 봤어" (applied / passed / interviewed) | Updates the tracker, applies the re-apply cooldown, logs the interview, analyzes causes and suggests criteria changes as results accumulate |
 | "메뉴" (menu, or just a mode name) | The available modes and the next step that fits where you are |
@@ -363,7 +364,7 @@ LEGAL_DISCLAIMER.md          Acceptable use and disclaimer (Korean)
 CHANGELOG.md                 Change log, with data/ migration notes per version (Korean)
 CONTRIBUTING.md              Contributing guide: dev setup, checks, adding a collector (Korean)
 SKILL.md                     Skill entry point, routes requests to modes
-modes/                       Shared rules and per-mode procedures (onboard · scan · evaluate · tailor · cover · deep · interview · track · outcome)
+modes/                       Shared rules and per-mode procedures (onboard · scan · prep · evaluate · tailor · cover · interview · track · outcome)
 scripts/
   cli.py                     The jobhunt command (each command runs a script below as is)
   jobkit.py                  Shared core: paths, HTTP, filters, duplicate checks, reading the scan log, queue and tracker
@@ -373,6 +374,7 @@ scripts/
   score.py                   Judgment file → score, applied to the queue (score init drafts a judgment)
   tracker.py                 Application tracker and combined overview
   report_html.py             Posting report as HTML (jobhunt report)
+  prep_page.py               Preparation page per posting (built with the report)
   cover_check.py             Cover-letter character counts and style checks
   eval_golden.py             Compare agent judgments with the golden set (after changing classification rules)
   weekly.py                  Weekly scan (scan → alive → report; weekly.sh keeps the old path working)

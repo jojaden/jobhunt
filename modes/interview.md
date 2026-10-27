@@ -18,14 +18,14 @@ From a document pass to an offer: prepare each hiring stage, rehearse the questi
 
 ## plan
 
-1. Read the posting, its `.eval.md`, the submitted resume yaml, and the company note from `modes/deep.md` if there is one (offer `deep` first when there is none and the host can browse).
+1. Read the posting, its `.eval.md`, the submitted resume yaml, and its prep file (`modes/prep.md`; offer `prep` first when there is none). The prep file already holds the company research, stages, tests and first questions: start from them, check the questions against the resume that was actually submitted, and add what the next stage needs.
 2. List the hiring stages from the posting (전형 절차 / 합류 여정). Missing → ask the recruiter or check the career page.
 3. Write the practice sheet (Korean) in this order:
    - **전형별 준비** — per stage, what they check and how to prepare:
 
      | Stage | What they check | Preparation |
      |---|---|---|
-     | 리쿠르터 / 문화적합성 / 인성 | motivation, reason for leaving, fit, salary, communication | 2-minute self-introduction; why this company (from `deep`); why leaving in one positive sentence, no blame; salary range from `targets.yaml`; one collaboration story |
+     | 리쿠르터 / 문화적합성 / 인성 | motivation, reason for leaving, fit, salary, communication | 2-minute self-introduction; why this company (`fit` in the prep file); why leaving in one positive sentence, no blame; salary range from `targets.yaml`; one collaboration story |
      | 코딩테스트 / 라이브코테 | problem solving while watched | confirm input range, nulls, allowed libraries first; think aloud; test edge cases; practise in the posting's language |
      | 과제 | code quality, judgment | README with decisions and trade-offs, tests, commits that read as steps |
      | 직무 / 기술 인터뷰 | depth behind every resume line | the questions below, two follow-ups deep |
@@ -35,9 +35,9 @@ From a document pass to an offer: prepare each hiring stage, rehearse the questi
    - **이력서에서 나올 질문** — for every project: the hardest part and how the cause was narrowed; why the adopted option and why the rejected one lost; how each number was measured and what produced it; my part vs the team's and team size; what I would change, and the monitoring or prevention afterwards. For every technology on the resume: why this one, how it differs from the alternative. Phrase them in the styles of `interview_questions.md` ("Resume check", "Number check"), each with two likely follow-ups.
    - **기술 질문** — from the posting's stack and the resume, pick questions across the styles (concept + design reason, internals, compare and choose, symptom → diagnosis, failure/extreme, integrated). Take them from the user's notes where they exist; add what the notes lack. Mark the ones most likely ("단골") first.
    - **행동·협업 질문** — map each to a story in `stories.md`; list missing stories to write.
-   - **역질문** — 2–3 the company's public material does not already answer (success criteria of the role, deploy and incident practice, team make-up and onboarding), at least one from the `deep` note.
+   - **역질문** — 2–3 the company's public material does not already answer (success criteria of the role, deploy and incident practice, team make-up and onboarding), at least one from the prep file's company research.
 4. Any resume line the user cannot defend two follow-ups deep: flag it and offer to cut or soften it (`modes/tailor.md`).
-5. Show the user the next stage in full and a one-line plan for the rest.
+5. Show the user the next stage in full and a one-line plan for the rest. Add new preparation tasks to the prep file's `prepare` list and run `jobhunt report` so the page stays current.
 
 ## practice
 

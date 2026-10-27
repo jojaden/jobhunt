@@ -31,7 +31,7 @@ Scripts validate these; use them verbatim.
 |---|---|
 | `평가함` | evaluated, application undecided |
 | `지원함` | the user says they submitted |
-| `서류합격` | notified of passing document screening → offer `modes/interview.md` plan (and `modes/deep.md` if no company note yet) |
+| `서류합격` | notified of passing document screening → offer `modes/interview.md` plan (and `modes/prep.md` if the posting has no prep file yet) |
 | `면접` | interviews in progress (round in the memo); after each round run the `modes/interview.md` debrief |
 | `최종합격` | received an offer |
 | `입사` | accepted the offer |
