@@ -195,8 +195,10 @@ def _text(fragment: str) -> str:
 
 
 def _won(cell: str) -> Optional[int]:
-    """'1,234' · '(1,234)' · '△1,234' · '-1,234' → 정수. 빈칸·'-' 는 None."""
+    """'1,234' · '(1,234)' · '△1,234' · '-1,234' → 정수, '-' 는 0 (재무제표에서 금액 없음). 빈칸은 None."""
     t = cell.replace(",", "").replace(" ", "")
+    if t in ("-", "–", "—"):
+        return 0
     neg = t[:1] in ("(", "△", "-") and len(t) > 1
     t = t.strip("()△-")
     return (-int(t) if neg else int(t)) if t.isdigit() else None
@@ -207,7 +209,7 @@ def statement(xml: str) -> Dict[int, Dict[str, Any]]:
     코드가 없으면 계정 이름으로 찾는다. 못 찾으면 ShapeError."""
     for g in re.finditer(r"<TABLE-GROUP\b[^>]*>(.*?)</TABLE-GROUP>", xml, re.S):
         body = g.group(1)
-        found: Dict[str, List[int]] = {}
+        found: Dict[str, Tuple[List[str], int]] = {}       # 항목 → (금액 칸들, 부호)
         for tr in re.findall(r"<TR\b[^>]*>(.*?)</TR>", body, re.S):
             cells = [_text(c) for c in re.findall(r"<T[DHE]\b[^>]*>(.*?)</T[DHE]>", tr, re.S)]
             if not cells:
@@ -216,9 +218,8 @@ def statement(xml: str) -> Dict[int, Dict[str, Any]]:
             name = re.sub(r"^[\sⅠ-ⅩIVX]+\.?\s*|\(주석[^)]*\)|\s", "", cells[0])
             field = ACODES.get(m.group(1) if m else "") or ("revenue" if name in REVENUE else "operating_profit"
                                                             if name in PROFIT or name == "영업손실" else "")
-            nums = [v for v in map(_won, cells[1:]) if v is not None]
-            if field and field not in found and nums:
-                found[field] = [-v for v in nums] if name == "영업손실" else nums
+            if field and field not in found and any(_won(c) is not None for c in cells[1:]):
+                found[field] = (cells[1:], -1 if name == "영업손실" else 1)
         if len(found) < 2:
             continue
         text = _text(body)
@@ -226,13 +227,17 @@ def statement(xml: str) -> Dict[int, Dict[str, Any]]:
         unit = re.search(r"단위\s*[:：]?\s*(백만원|천원|원)", text)
         if not years or not unit:
             raise K.ShapeError("감사보고서 손익계산서에 회계연도나 단위 표기 없음")
-        out: Dict[int, Dict[str, Any]] = {}
-        for i, y in enumerate(years):
-            row: Dict[str, Any] = {"year": y}
-            for field, nums in found.items():
-                if i < len(nums):
-                    row[field] = eok(nums[i] * UNITS[unit.group(1)])
-            out[y] = row
+        out: Dict[int, Dict[str, Any]] = {y: {"year": y} for y in years}
+        for field, (amounts, sign) in found.items():
+            # 금액 칸은 연도마다 같은 수씩(보통 [소계, 합계] × 당기·전기). 연도별로 나눠 그 안의 마지막 금액을 쓴다
+            # (빈 해가 있어도 다음 해 금액이 앞으로 당겨지지 않게)
+            if len(amounts) % len(years):
+                raise K.ShapeError(f"감사보고서 손익계산서의 금액 칸 수({len(amounts)})가 연도 수({len(years)})와 맞지 않음")
+            per = len(amounts) // len(years)
+            for i, y in enumerate(years):
+                vals = [v for v in map(_won, amounts[i * per:(i + 1) * per]) if v is not None]
+                if vals:
+                    out[y][field] = eok(sign * vals[-1] * UNITS[unit.group(1)])
         return out
     raise K.ShapeError("감사보고서에서 손익계산서(영업수익·영업이익)를 찾지 못함")
 

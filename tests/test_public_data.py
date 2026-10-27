@@ -55,6 +55,12 @@ def nps_ok(items):
                               "body": {"items": {"item": items}, "pageNo": 1, "numOfRows": 100, "totalCount": len(items)}}}
 
 
+def nps_page(items, total):
+    status, d = nps_ok(items)
+    d["response"]["body"]["totalCount"] = total
+    return status, d
+
+
 NPS_EMPTY = (200, {"response": {"header": {"resultCode": "00"}, "body": {"items": "", "totalCount": 0}}})
 MONTHS = nps.last_months("202609")
 ROWS = [dict(dataCrtYm=m, seq=str(100 + i), wkplNm="주식회사 가나다랩", wkplRoadNmDtlAddr="서울특별시 강남구 테헤란로",
@@ -97,6 +103,23 @@ class Nps(TestCase):
             with self.assertRaises(nps.Ambiguous):
                 nps.workplace(NKEY, "주식회사 가나다랩")
             self.assertEqual(nps.workplace(NKEY, "주식회사 가나다랩", addr="해운대")[2][0]["seq"], "777")
+
+    def test_all_pages(self):
+        # 부분 일치라 이름이 비슷한 사업장이 100건을 넘으면, 찾는 회사가 다음 쪽에 있어도 읽는다 (PR #87 리뷰)
+        others = [dict(ROWS[-1], wkplNm=f"주식회사 가나다랩{i}", bzowrRgstNo=f"{i:06d}****", seq=str(5000 + i)) for i in range(100)]
+        pages = [("getBassInfoSearchV2", {"wkplNm": "가나다랩", "pageNo": "1"}, nps_page(others, 112)),
+                 ("getBassInfoSearchV2", {"wkplNm": "가나다랩", "pageNo": "2"}, nps_page(ROWS, 112))]
+        with api(pages) as fake:
+            name, _, months = nps.workplace(NKEY, "가나다랩")
+        self.assertEqual((name, len(months)), ("주식회사 가나다랩", 12))
+        self.assertEqual([q["pageNo"] for _, q in fake.calls], ["1", "2"])
+
+    def test_no_exact_name_is_not_guessed(self):
+        # 이름이 정확히 같은 사업장이 없으면 비슷한 이름의 다른 회사를 고르지 않고 후보를 보여 준다
+        with api([("getBassInfoSearchV2", {}, nps_ok([dict(ROWS[-1], wkplNm="주식회사 가나다랩스튜디오")]))]):
+            with self.assertRaises(nps.Ambiguous):
+                nps.workplace(NKEY, "가나다랩")
+            self.assertEqual(nps.workplace(NKEY, "가나다랩", addr="테헤란로")[0], "주식회사 가나다랩스튜디오")
 
     def test_moved_workplace_is_one(self):
         # 이사한 회사: 달마다 주소가 달라도 같은 사업장이고, 최근 주소를 쓴다 (2026-10-27 실제 응답에서 본 경우)
@@ -235,6 +258,16 @@ class Dart(DartList):
         self.assertEqual(fin[2025]["operating_profit"], -0.5)
         with self.assertRaises(K.ShapeError):
             dart.statement("<DOCUMENT><TABLE-GROUP><TR><TD>재무상태표</TD></TR></TABLE-GROUP></DOCUMENT>")
+
+    def test_statement_keeps_year_columns(self):
+        # 당기가 '-'(없음)여도 전기 금액이 당기 자리로 밀리지 않는다 (PR #87 리뷰)
+        fin = dart.statement(audit_xml(2025, ("-", "100,000,000"), ("-", "(50,000,000)")))
+        self.assertEqual(fin, {2025: dict(year=2025, revenue=0, operating_profit=0),
+                               2024: dict(year=2024, revenue=1, operating_profit=-0.5)})
+        # 열 수가 연도 수로 나뉘지 않으면 짐작하지 않는다
+        bad = audit_xml(2025, ("1", "2"), ("3", "4")).replace('<TE ALIGN="RIGHT" ACODE="12500000010000"></TE>', "", 1)
+        with self.assertRaises(K.ShapeError):
+            dart.statement(bad)
 
     def test_unlisted_reads_audit_reports(self):
         audits = [dict(rcept_no=r, report_nm=nm, rcept_dt=dt) for r, nm, dt in

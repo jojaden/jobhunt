@@ -21,6 +21,7 @@ PAGE = "https://www.data.go.kr/data/3046071/openapi.do"
 # 기준소득월액 상한 (적용 시작 년월, 원): 명세 설명 + 국민연금공단 2026년 상·하한액 조정 안내
 CAPS = [("202107", 5_240_000), ("202207", 5_530_000), ("202307", 5_900_000), ("202407", 6_170_000),
         ("202507", 6_370_000), ("202607", 6_590_000)]
+MAX_ROWS = 1000                              # 사업장 검색: 사업장마다 12개월 줄이 오므로 80여 곳
 KEY_HELP = "공공데이터포털 키가 거절됨: '국민연금 가입 사업장 내역' 활용신청을 했는지, 발급 직후면 1~2시간 뒤 다시 (jobhunt keys)"
 
 
@@ -57,10 +58,10 @@ def _fail(code: str, what: str) -> None:
     raise RuntimeError(f"공공데이터포털 {what} 오류 코드 {code}")
 
 
-def _call(op: str, what: str, key: str, **params: Any) -> List[Dict[str, Any]]:
-    """한 오퍼레이션의 items.item 목록 (한 건이면 dict 로 오기도 해 목록으로 맞춘다)."""
+def _page(op: str, what: str, key: str, page: int = 1, **params: Any) -> Tuple[List[Dict[str, Any]], int]:
+    """한 오퍼레이션의 한 쪽: (items.item 목록, 전체 건수). 한 건이면 dict 로 오기도 해 목록으로 맞춘다."""
     q = urllib.parse.urlencode(dict({k: v for k, v in params.items() if v not in (None, "")},
-                                    serviceKey=key, dataType="json", pageNo=1))
+                                    serviceKey=key, dataType="json", pageNo=page))
     status, body = K.http_get(f"{BASE}/{op}?{q}")
     if status in (401, 403):
         raise RuntimeError(KEY_HELP)
@@ -76,23 +77,45 @@ def _call(op: str, what: str, key: str, **params: Any) -> List[Dict[str, Any]]:
         if m and m.group(1) not in ("00", "03"):
             _fail(m.group(1), what)
         if m:
-            return []
+            return [], 0
         raise K.ShapeError(f"공공데이터포털 {what} 응답이 JSON 이 아님") from None
     r = d.get("response", d) if isinstance(d, dict) else None
     if not isinstance(r, dict) or not isinstance(r.get("header"), dict):
         raise K.ShapeError(f"공공데이터포털 {what} 응답에 header 없음")
     code = str(r["header"].get("resultCode", ""))
     if code == "03":
-        return []
+        return [], 0
     if code != "00":
         _fail(code, what)
-    items = (r.get("body") or {}).get("items")
+    data = r.get("body") or {}
+    items = data.get("items")
     if items in (None, ""):                     # 결과가 없으면 빈 문자열로 온다
-        return []
+        return [], 0
     if not isinstance(items, dict):
         raise K.ShapeError(f"공공데이터포털 {what} 응답에 items 없음")
     item = items.get("item") or []
-    return [item] if isinstance(item, dict) else [x for x in item if isinstance(x, dict)]
+    rows = [item] if isinstance(item, dict) else [x for x in item if isinstance(x, dict)]
+    return rows, _int(data.get("totalCount")) or len(rows)
+
+
+def _call(op: str, what: str, key: str, **params: Any) -> List[Dict[str, Any]]:
+    """첫 쪽의 목록 (상세·기간별 현황은 한 건이다)."""
+    return _page(op, what, key, **params)[0]
+
+
+def _all(op: str, what: str, key: str, **params: Any) -> List[Dict[str, Any]]:
+    """모든 쪽 (쪽당 100건). 너무 많으면(MAX_ROWS) 이름을 좁히라고 알린다."""
+    rows, total = _page(op, what, key, 1, numOfRows=100, **params)
+    if total > MAX_ROWS:
+        raise LookupError(f"국민연금 사업장 검색 결과가 너무 많음 ({total:,}건): 정식 회사 이름으로 다시")
+    page = 1
+    while len(rows) < total:
+        page += 1
+        more = _page(op, what, key, page, numOfRows=100, **params)[0]
+        if not more:
+            break
+        rows += more
+    return rows
 
 
 def ping(key: str) -> None:
@@ -114,7 +137,7 @@ def workplace(key: str, name: str, bizno: str = "", addr: str = "") -> Tuple[str
     # 이름은 부분 일치로 찾는다('가나다' → '(주)가나다'). 법인 표기를 뗀 이름 먼저, 없으면 표기를 붙여 본다
     core = core_name(name)
     for q in dict.fromkeys([core, name, f"주식회사 {core}", f"(주){core}"]):
-        rows = _call("getBassInfoSearchV2", "사업장 조회", key, wkplNm=q, bzowrRgstNo=re.sub(r"\D", "", bizno)[:6], numOfRows=100)
+        rows = _all("getBassInfoSearchV2", "사업장 조회", key, wkplNm=q, bzowrRgstNo=re.sub(r"\D", "", bizno)[:6])
         if rows:
             break
     groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
@@ -123,15 +146,19 @@ def workplace(key: str, name: str, bizno: str = "", addr: str = "") -> Tuple[str
             raise K.ShapeError("국민연금 사업장 조회 응답에 wkplNm·dataCrtYm 없음")
         groups.setdefault((r["wkplNm"], str(r.get("bzowrRgstNo", ""))), []).append(r)
     latest = {g: max(rs, key=lambda r: r["dataCrtYm"]) for g, rs in groups.items()}
-    pool = [g for g in groups if norm(g[0]) == norm(name)] or list(groups)
-    if addr:
-        pool = [g for g in pool if addr.replace(" ", "") in latest[g].get("wkplRoadNmDtlAddr", "").replace(" ", "")]
     # 탈퇴한 사업장은 뺀다 (가장 최근 달 기준)
-    pool = [g for g in pool if str(latest[g].get("wkplJnngStcd", "1")) == "1"]
-    if not pool:
+    alive = [g for g in groups if str(latest[g].get("wkplJnngStcd", "1")) == "1"]
+    if not alive:
         raise LookupError(f"국민연금 가입 사업장에서 '{name}' 을 찾지 못함 (3인 이상 법인만 공개)")
-    if len(pool) > 1:
-        raise Ambiguous("\n".join(f"  {n} · {latest[(n, b)].get('wkplRoadNmDtlAddr', '')} · 사업자 {b}" for n, b in pool))
+    # 이름이 정확히 같은 곳만 고른다. 비슷한 이름(부분 일치)뿐이면 짐작하지 않고 후보를 보여 준다. 주소 일부를 주면 그 안에서 고른다
+    exact = [g for g in alive if norm(g[0]) == norm(name)]
+    pool = exact
+    if addr:
+        pool = [g for g in exact or alive if addr.replace(" ", "") in latest[g].get("wkplRoadNmDtlAddr", "").replace(" ", "")]
+        if not pool:
+            raise LookupError(f"국민연금 가입 사업장 '{name}' 중 주소에 '{addr}' 가 든 곳이 없음")
+    if len(pool) != 1:
+        raise Ambiguous("\n".join(f"  {n} · {latest[(n, b)].get('wkplRoadNmDtlAddr', '')} · 사업자 {b}" for n, b in pool or alive))
     g = pool[0]
     return g[0], latest[g].get("wkplRoadNmDtlAddr", ""), sorted(groups[g], key=lambda r: r["dataCrtYm"])
 
