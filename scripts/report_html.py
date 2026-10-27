@@ -69,12 +69,11 @@ def collect(today: date, since: str) -> dict:
     for a in K.read_tracker():                    # 평가까지 마치고 아직 지원하지 않은 공고도 판정 구간에 함께 둔다
         if a["state"] != "평가함":
             continue
-        m = re.search(rf"#{a['num']:03d} \| (\S+)", pipe)
         sc = re.match(r"([\d.]+)/5", a["score"])
         total = float(sc.group(1)) if sc else None
         loc = re.search(r"근무지 ([^·;(]+)", a["memo"])
         rows.append(dict(
-            url=m.group(1) if m else "", company=a["company"], title=a["role"], location=loc.group(1).strip() if loc else "",
+            url=_tracker_url(a, pipe), company=a["company"], title=a["role"], location=loc.group(1).strip() if loc else "",
             score=total, verdict=next(v for lim, v, _ in S.VERDICTS if total >= lim) if total is not None else "확인 필요",
             reason=f"평가함 ({a['date']} 평가, 이력서 PDF {a['pdf']}) — 아직 지원 전", parts={}, bonus=0, caps=[], band="",
             closes="", seen=a["date"], new=False, judgment=""))
@@ -82,11 +81,18 @@ def collect(today: date, since: str) -> dict:
     for a in K.read_tracker():
         if a["state"] not in APPLIED:
             continue
-        m = re.search(rf"#{a['num']:03d} \| (\S+)", pipe)
         apps.append(dict(no=a["num"], date=a["date"], company=a["company"], role=a["role"], state=a["state"],
-                         memo=re.sub(r"\s+", " ", a["memo"]), url=m.group(1) if m else ""))
+                         memo=re.sub(r"\s+", " ", a["memo"]), url=_tracker_url(a, pipe)))
     sites, leads = _manual(pipe)
     return dict(rows=rows, apps=apps, sites=sites, leads=leads, today=today.isoformat(), since=since)
+
+
+def _tracker_url(a, pipe: str) -> str:
+    """지원 기록의 공고 주소: 대기함 줄 → 평가 파일 → 메모 (주소를 직접 받아 평가한 공고는 대기함에 없다)."""
+    import alive
+    m = re.search(rf"#{a['num']:03d} \| (\S+)", pipe)
+    memo = K.URL_RE.search(a["memo"])
+    return m.group(1) if m else alive.eval_url(a["eval"]) or (memo.group(0) if memo else "")
 
 
 def _manual(pipe: str):
@@ -635,8 +641,9 @@ def main(argv=None):
         os.makedirs(os.path.dirname(os.path.abspath(a.fragment)), exist_ok=True)
         K.write_text(a.fragment, fragment(data))
         print(f"뼈대 없는 판: {a.fragment}")
-        # 페이지를 올리는 호스트는 이 폴더의 파일을 prep/<파일 이름> 경로로 함께 올린다
-        for path in prep_page.write_pages(data["preps"], os.path.dirname(os.path.abspath(a.fragment)), back=""):
+        # 페이지를 올리는 호스트는 이 폴더의 파일을 prep/<파일 이름> 경로로 함께 올린다.
+        # 현황표와 같은 폴더여도 그 prep/ 쪽(복귀 링크가 현황표 파일)을 덮어쓰지 않게 따로 둔다
+        for path in prep_page.write_pages(data["preps"], os.path.dirname(os.path.abspath(a.fragment)), back="", sub="prep-publish"):
             print(f"  함께 올릴 쪽: prep/{os.path.basename(path)} ← {path}")
 
 

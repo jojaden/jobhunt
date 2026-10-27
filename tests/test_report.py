@@ -89,6 +89,34 @@ class Prep(unittest.TestCase):
         self.assertEqual(rows[0]["margin"], -5.0)
         self.assertIsNone(rows[0]["yoy"])
         self.assertEqual((rows[1]["margin"], rows[1]["yoy"]), (15.0, 20.0))
+        # 빠진 해를 건너뛴 증가율은 전년 대비가 아니다
+        gap = prep_page.finance_rows([{"year": 2023, "revenue": 100}, {"year": 2025, "revenue": 200}])
+        self.assertIsNone(gap[1]["yoy"])
+
+    def test_tracker_url(self):
+        # 주소를 직접 받아 평가한 공고는 대기함에 없다: 대기함 줄 → 평가 파일 → 메모 순서로 찾는다
+        a = dict(num=7, eval="", memo="근무지 서울 · https://example.com/jobs/7")
+        self.assertEqual(report_html._tracker_url(a, ""), "https://example.com/jobs/7")
+        self.assertEqual(report_html._tracker_url(a, "- [ ] #007 | https://example.com/jobs/70 | 가나다랩"),
+                         "https://example.com/jobs/70")
+        os.makedirs(os.path.dirname(K.P["tracker"]), exist_ok=True)
+        ev = os.path.join(os.path.dirname(K.P["tracker"]), "eval7.md")
+        with open(ev, "w", encoding="utf-8") as f:
+            f.write("# 가나다랩\n**URL:** https://example.com/jobs/77\n")
+        self.addCleanup(os.remove, ev)
+        a["eval"] = "[평가](eval7.md)"
+        self.assertEqual(report_html._tracker_url(a, ""), "https://example.com/jobs/77")
+
+    def test_fragment_same_folder(self):
+        # 현황표와 뼈대 없는 판을 같은 폴더에 써도 현황표 쪽의 복귀 링크는 현황표 파일을 가리킨다
+        name = prep_page.slug(prep_page.example()["posting"]["url"]) + ".html"
+        with tempfile.TemporaryDirectory() as tmp:
+            report_html.main(["--demo", "--today", "2026-10-27", "-o", os.path.join(tmp, "postings.html"),
+                              "--fragment", os.path.join(tmp, "fragment.html")])
+            full = open(os.path.join(tmp, "prep", name), encoding="utf-8").read()
+            pub = open(os.path.join(tmp, "prep-publish", name), encoding="utf-8").read()
+        self.assertIn('href="../postings.html"', full)
+        self.assertIn('href="../"', pub)
 
     def test_problems(self):
         d = prep_page.load(self.path)

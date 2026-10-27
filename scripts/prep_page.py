@@ -112,13 +112,15 @@ def finance_rows(fin: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     fin = sorted((f for f in fin or [] if isinstance(f, dict) and f.get("year")), key=lambda f: f["year"])
     out: List[Dict[str, Any]] = []
     prev: Optional[float] = None
+    prev_year = None
     for f in fin:
         rev, op = f.get("revenue"), f.get("operating_profit")
         rev = float(rev) if isinstance(rev, (int, float)) and rev > 0 else None     # 매출이 없거나 0 이하면 비율을 내지 않는다
         margin = round(op / rev * 100, 1) if rev and isinstance(op, (int, float)) else None
-        yoy = round((rev - prev) / prev * 100, 1) if rev and prev else None
+        # 바로 앞 해 자료가 있을 때만 전년 대비 (빠진 해를 건너뛴 증가율은 전년 대비가 아니다)
+        yoy = round((rev - prev) / prev * 100, 1) if rev and prev and isinstance(prev_year, int) and prev_year + 1 == f["year"] else None
         out.append(dict(f, margin=margin, yoy=yoy))
-        prev = rev
+        prev, prev_year = rev, f["year"]
     return out
 
 
@@ -281,12 +283,12 @@ def document(d: Dict[str, Any], back: str = "../postings.html") -> str:
             f'<title>{_e(title)}</title>\n{R.FONT}\n<style>{R.CSS}{CSS}</style>\n</head>\n<body>\n{body(d, back)}\n</body>\n</html>\n')
 
 
-def write_pages(preps: List[Dict[str, Any]], folder: str, back: str) -> List[str]:
-    """준비 자료마다 folder/prep/<열쇠>.html 을 쓴다. back 은 현황표 파일 이름(같은 폴더, 비우면 그 폴더 자체). 쓴 파일 경로 목록."""
+def write_pages(preps: List[Dict[str, Any]], folder: str, back: str, sub: str = "prep") -> List[str]:
+    """준비 자료마다 folder/<sub>/<열쇠>.html 을 쓴다. back 은 현황표 파일 이름(같은 폴더, 비우면 그 폴더 자체). 쓴 파일 경로 목록."""
     out = []
-    os.makedirs(os.path.join(folder, "prep"), exist_ok=True)
+    os.makedirs(os.path.join(folder, sub), exist_ok=True)
     for d in preps:
-        path = os.path.join(folder, "prep", slug(d["posting"]["url"]) + ".html")
+        path = os.path.join(folder, sub, slug(d["posting"]["url"]) + ".html")
         K.write_text(path, document(d, "../" + back))
         out.append(path)
     return out
