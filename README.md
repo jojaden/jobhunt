@@ -21,7 +21,7 @@
 
 ## 📖 소개
 
-<p align="center"><img src="assets/flow.ko.png" alt="공고 찾기 → 맞춤도 평가 → 맞춤 이력서 → 기록·학습 흐름" width="820"/></p>
+<p align="center"><img src="assets/flow.ko.png" alt="공고 찾기 → 맞춤도 평가 → 공고 준비 → 맞춤 이력서 → 기록·학습 흐름" width="820"/></p>
 
 **jobhunt**는 AI 에이전트용 스킬(`SKILL.md`·`AGENTS.md`)과 Python 스크립트로 이루어져 있습니다. 특정 AI에 묶여 있지 않아 Codex, Claude Code, Grok, Gemini, Cursor 등 이 폴더의 파일을 읽고 명령을 실행할 수 있는 에이전트라면 같은 절차로 씁니다.
 
@@ -34,6 +34,7 @@
 - 🏢 **회사 넓히기:** 잡보드에 잘 안 올리고 자체 채용 사이트에만 공고를 내는 회사를 찾습니다. 기술 블로그·GitHub 조직 목록, 원티드 회사 정보(연봉 수준·인원), 알려진 회사 목록으로 인지도·규모 점수를 매기고, 홈페이지에서 채용 사이트와 채용 시스템(greetinghr·나인하이어·Greenhouse 등)을 찾아 수집 대상에 넣습니다.
 - 🔎 **공고 찾기:** 원티드·점핏·LinkedIn·사람인·리멤버·Greenhouse(당근·쿠팡·크래프톤 등)·토스·NHN·카카오·greetinghr·나인하이어·Workday·Workable 기업과, 첫 화면에 목록이 없는 자체 채용 사이트(탐색 때 한 번 찾아 둔 목록 API)까지 한 번에 수집합니다. 제목·연차·근무지, 사이트 간 중복(회사 별칭으로 한글·영문 표기 통일), 제외 회사, 재지원 쿨다운을 자동으로 거르고, 표기만 달라 같은 공고일 수 있는 공고는 표시해 한 번만 판정합니다.
 - 📊 **맞춤도 평가:** 근무지·영어·기술 스택 조건을 공고 문장 근거와 함께 판정합니다. 자격요건·우대사항 한 줄마다 내 경험을 연결해 1~5점으로 매깁니다. 필수와 우대는 "~필요해요"와 "~좋아요" 같은 문장 끝으로 구분합니다.
+- 🧭 **공고 준비:** 현황표에서 고른 공고마다 회사(경영진·문화·인재상·평판·면접 후기·국민연금 기반 인원과 평균연봉·매출과 영업이익 추세·이슈)와 직무를 출처와 함께 조사하고, 전형과 시험 형식, 내 이력에서 나올 예상 질문과 꼬리질문, 더 준비할 것을 정리합니다. 현황표의 그 공고 줄에서 준비 쪽으로 넘어갑니다.
 - 📝 **맞춤 이력서:** 평가에서 나온 계획(앞세울 프로젝트, 기술 교집합, 용어)으로 공고별 yaml을 만들고, 디자인 3종 중 하나로 A4 PDF를 빌드합니다. 빌드할 때마다 페이지 수·링크·문체를 자동으로 검사합니다.
 - 📋 **지원 현황:** 평가한 공고와 선별을 통과한 공고를 표 하나에 모아 지원 여부와 마감 여부를 함께 보여 줍니다.
 - 📈 **쓸수록 정확해지는 개인화:** "점수가 너무 높다", "내 X 경험을 놓쳤다" 같은 교정과 서류 결과가 `data/`의 기준 파일에 날짜와 함께 쌓입니다.
@@ -49,6 +50,12 @@
 <p align="center"><img src="assets/report.ko.png" alt="공고 현황표 견본: 판정별 결재란, 지원 권장 대장과 인주 도장, 항목별 점수 붙임" width="720"/></p>
 
 텍스트만 되는 환경에서는 `jobhunt tracker report --alive` 가 같은 내용을 표로 출력합니다.
+
+### 공고 준비 자료 (`data/job_postings/*.prep.yaml`)
+
+현황표의 "준비 자료" 버튼으로 여는 공고별 쪽입니다(가상 회사). 더 준비할 것은 우선순위와 끝냈는지로 정렬되고, 그 아래로 전형과 시험, 예상 질문, 직무, 회사 숫자가 사실마다 출처 번호와 함께 이어집니다.
+
+<p align="center"><img src="assets/prep.ko.png" alt="공고 준비 자료 견본: 준비 결재란, 이 회사여야 하는 이유, 우선순위별 더 준비할 것" width="720"/></p>
 
 ### 맞춤도 평가 (`data/job_postings/*.eval.md`)
 
@@ -121,12 +128,7 @@ uv tool install --python 3.12 .
 jobhunt setup
 ```
 
-개인 자료는 받은 폴더가 아니라 `jobhunt setup`에서 고른 폴더(기본 `~/jobhunt/data`)에 쌓입니다. 갱신할 때는 받은 폴더에서:
-
-```bash
-git pull
-uv tool install --force --reinstall-package jobhunt --python 3.12 .
-```
+개인 자료는 받은 폴더가 아니라 `jobhunt setup`에서 고른 폴더(기본 `~/jobhunt/data`)에 쌓입니다. 갱신은 `jobhunt update`가 받은 폴더에서 `git pull`을 하고 다시 설치합니다.
 
 </details>
 
@@ -180,7 +182,7 @@ codex plugin marketplace add jojaden/jobhunt
 codex plugin add jobhunt@jobhunt
 ```
 
-- **플러그인은 안내만 담습니다.** 지침(`SKILL.md`·`modes/`·`references/`)과 스크립트는 `jobhunt` 명령에 들어 있어서 위 한 줄 설치도 필요합니다. 없으면 플러그인이 처음 실행될 때 설치를 안내합니다. 그래서 지침과 스크립트 버전이 어긋나지 않고, 설치 명령으로 갱신하면 플러그인을 다시 받지 않아도 지침까지 새 버전이 됩니다.
+- **플러그인은 안내만 담습니다.** 지침(`SKILL.md`·`modes/`·`references/`)과 스크립트는 `jobhunt` 명령에 들어 있어서 위 한 줄 설치도 필요합니다. 없으면 플러그인이 처음 실행될 때 설치를 안내합니다. 그래서 지침과 스크립트 버전이 어긋나지 않고, `jobhunt update`로 갱신하면 플러그인을 다시 받지 않아도 지침까지 새 버전이 됩니다.
 - **스킬이 두 번 보이지 않게** 플러그인이 있는 에이전트에는 `jobhunt setup`이 링크를 만들지 않습니다. 설치 명령을 먼저 실행했다면 플러그인을 설치한 뒤 `jobhunt setup --skill-only`를 한 번 실행해 링크를 정리하세요.
 - 슬래시 명령에는 플러그인 이름이 붙습니다: `/jobhunt:jobhunt scan`.
 
@@ -208,10 +210,12 @@ codex plugin add jobhunt@jobhunt
 업데이트:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash
+jobhunt update
 ```
 
-버전은 `v1.4.0`처럼 태그로 붙입니다. 설치 명령으로 갱신하면 그 사이 바뀐 점을 보여 주고, 나중에도 `jobhunt changes <이전 버전>`으로 볼 수 있습니다([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). `data/` 형식이 바뀐 버전은 옮기는 방법을 함께 적습니다. 지금 버전은 `jobhunt --version`.
+개인 자료 폴더·스킬 연결·빌드 환경은 그대로 두고 도구만 새 버전으로 바꿉니다(설치할 때 쓴 저장소에서 다시 받음, `JOBHUNT_REF=v1.4.0`으로 버전 고정). 저장소를 clone해 그 폴더에서 쓰고 있다면 `main` 브랜치에서 `python3 scripts/cli.py update`가 `git pull`을 하고, 의존성이 바뀌었으면 빌드 환경까지 맞춥니다. `jobhunt update`가 없는 예전 설치는 설치 명령을 한 번 다시 실행하면 됩니다.
+
+버전은 `v1.4.0`처럼 태그로 붙입니다. 업데이트하면 그 사이 바뀐 점을 보여 주고, 나중에도 `jobhunt changes <이전 버전>`으로 볼 수 있습니다([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). `data/` 형식이 바뀐 버전은 옮기는 방법을 함께 적습니다. 지금 버전은 `jobhunt --version`.
 
 에이전트별로 시작하는 법:
 
@@ -250,6 +254,7 @@ jobhunt company 가나다랩              # 원티드 회사 정보(평균연봉
 jobhunt tracker report --alive       # 같은 내용을 텍스트 표로 (마감 여부 포함)
 jobhunt tracker set 3 지원함          # 지원 기록
 jobhunt render data/resumes/<이름>.yaml   # 이력서 빌드 (yaml → PDF · PNG, 검사까지)
+jobhunt update                       # 새 버전으로 업데이트 (개인 자료·스킬 연결은 그대로)
 jobhunt where                        # 개인 자료 폴더 위치 (jobhunt --help: 전체 명령)
 ```
 
@@ -296,7 +301,21 @@ AI 에이전트가 공고를 한 줄씩 분류하면(해 본 일인지, 필수 �
 
 계산 뒤에는 에이전트가 공고 전체를 다시 읽고(연차·범위, 채용 측이 무겁게 볼 요건) 조정 이유를 판정 파일에 남깁니다([`references/judgment.md`](references/judgment.md)). 근무지와 보상은 점수가 아니라 조건으로만 봅니다. 기준은 [`references/scoring.md`](references/scoring.md).
 
-## 📝 3. 맞춤 이력서
+## 🧭 3. 공고 준비
+
+현황표를 보고 "A사, B사 준비해줘" 하면 [`modes/prep.md`](modes/prep.md)의 순서로 공고마다 준비 자료를 만들어 `data/job_postings/<공고>.prep.yaml`에 남깁니다. 평가가 없는 공고는 평가부터 합니다.
+
+| 항목 | 내용 |
+|---|---|
+| 회사 | 제품·경영진·문화·인재상, 국민연금 기반 인원과 평균연봉·입퇴사, 연도별 매출과 영업이익, 평판, 최근 이슈. 사실마다 출처 번호, 찾지 못한 것은 "확인 못 함" |
+| 직무 | 공고가 원하는 기술·경험 ↔ 내 근거(충족 / 부분 / 없음)와 빈틈마다 준비할 것 |
+| 전형과 시험 | 전형별로 보는 것과 준비, 코딩테스트·과제·라이브 코딩의 예상 형식과 그 근거, 면접 후기 |
+| 예상 질문 | 이력서·공고·면접 후기에서 나올 질문 8~15개, 꼬리질문 2단계, 답의 뼈대와 근거 파일 |
+| 더 준비할 것 | 할 일 한 줄씩, 이유, 우선순위(높음·보통·낮음), 끝냈는지 |
+
+`jobhunt report`가 준비 자료마다 공고별 쪽을 만들고 현황표의 그 공고 줄에 "준비 자료 · 남은 n" 버튼을 붙입니다. 영업이익률과 전년 대비는 스크립트가 계산합니다. 준비가 끝나면 이 공고에 맞춰 이력서를 준비할지 묻고, 이력서·자소서·면접 모드가 이 파일을 읽습니다.
+
+## 📝 4. 맞춤 이력서
 
 [`modes/tailor.md`](modes/tailor.md)의 순서로 진행합니다. 평가가 있으면 "지원 전략"의 이력서 계획을 그대로 추천안으로 씁니다.
 
@@ -354,7 +373,7 @@ AI 에이전트가 공고를 한 줄씩 분류하면(해 본 일인지, 필수 �
 ## 📁 폴더 구조
 
 ```
-install.sh                   한 줄 설치 (uv → jobhunt 설치·갱신 → jobhunt setup, 예전 git 설치 전환)
+install.sh                   한 줄 설치 (uv → jobhunt 설치 → jobhunt setup, 예전 git 설치 전환)
 pyproject.toml               jobhunt 패키지 (uv tool install 로 설치하는 명령)
 .claude-plugin/ plugin/      Claude Code·Codex 플러그인 저장소와 플러그인 (설치된 스킬로 안내만 함)
 AGENTS.md                    모든 AI 에이전트용 작업 안내 (CLAUDE.md 는 이 파일을 불러옴)
@@ -382,6 +401,7 @@ scripts/
   check.py · check_links.py  빌드 후 검사, 링크 접속 확인
   git_log.sh                 로컬 git 저장소에서 내 커밋 로그 추출
   setup.sh · setup_ui.py     설치: 스킬 연결 + Chromium, 폰트, poppler (jobhunt setup 이 실행) · 고르는 화면
+  update.sh                  업데이트 (jobhunt update: 설치본은 다시 받아 설치, clone 폴더는 git pull)
   privacy_check.py           개인 자료 커밋 방지 (CI, .githooks/pre-commit)
 references/
   sources.md                 채용 사이트별 수집 방법

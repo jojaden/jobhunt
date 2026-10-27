@@ -21,7 +21,7 @@
 
 ## 📖 Overview
 
-<p align="center"><img src="assets/flow.en.png" alt="Find → Evaluate → Tailor → Track &amp; learn workflow" width="820"/></p>
+<p align="center"><img src="assets/flow.en.png" alt="Find → Evaluate → Prepare → Tailor → Track &amp; learn workflow" width="820"/></p>
 
 **jobhunt** is an AI agent skill (`SKILL.md` and `AGENTS.md`) plus Python scripts. It is not tied to one AI: Codex, Claude Code, Grok, Gemini, Cursor, or any agent that can read files in this folder and run commands follows the same steps.
 
@@ -36,6 +36,7 @@
 - 🏢 **Widen the company list:** Finds companies that post mainly on their own career sites. It ranks them by reputation and size using tech-blog and GitHub-org lists, Wanted company data (pay band, headcount) and a list of well-known companies, then locates each career site and its hiring system (greetinghr, Ninehire, Greenhouse …) and adds it to the scan.
 - 🔎 **Find postings:** Collects from Wanted, Jumpit, LinkedIn, Saramin, Remember, Greenhouse boards (Daangn, Coupang, KRAFTON …), Toss, NHN, Kakao, greetinghr, Ninehire, Workday and Workable companies, and in-house career sites with no list on the first screen (through a list API found once during discovery), in one run. It filters by title, required years, location, duplicates across sites (company aliases unify Korean and English names), blocked companies and re-apply cooldowns, and flags postings that may be the same opening under a different name so they are judged once.
 - 📊 **Score the fit:** Checks your location, English and tech-stack rules against quoted posting text, maps every requirement to your own experience, and scores 1–5. Required vs. preferred is told apart by Korean sentence endings ("~필요해요" vs. "~좋아요").
+- 🧭 **Prepare:** for each posting you pick from the report, researches the company (leaders, culture, the traits it hires for, reputation, interview reports, 국민연금-based headcount and average salary, revenue and operating-profit trend, recent issues) and the role with sources, and lays out the hiring stages and test format, likely questions from your own record with follow-ups, and what you still need to prepare. The posting's row in the report opens that page.
 - 📝 **Tailor the resume:** Turns the evaluation's plan (projects to lead with, skill overlap, wording) into a per-posting YAML, then builds it in one of three designs as an A4 PDF. Every build is checked automatically.
 - 📋 **Track applications:** Shows evaluated and triage-passed postings in a single table with "applied?" and "still open?" columns.
 - 📈 **Personalization that compounds:** Corrections like "this score is too high" or "you missed my X experience", plus application outcomes, accumulate in dated files under `data/`.
@@ -51,6 +52,12 @@ A sample built from fictional companies (`jobhunt report --demo`). It is laid ou
 <p align="center"><img src="assets/report.ko.png" alt="Posting report sample: verdict ledger, recommended postings with seals, itemised score attachment" width="720"/></p>
 
 Text-only hosts can use `jobhunt tracker report --alive`, which prints the same rows as a table.
+
+### Preparation page (`data/job_postings/*.prep.yaml`)
+
+The per-posting page that the report's "준비 자료" button opens (fictional company). What to prepare comes first, sorted by priority and whether it is done, followed by stages and tests, likely questions, the role and the company's numbers, each fact with a numbered source.
+
+<p align="center"><img src="assets/prep.ko.png" alt="Preparation page sample: preparation summary, why this company, what to prepare by priority" width="720"/></p>
 
 ### Fit evaluation (`data/job_postings/*.eval.md`, translated)
 
@@ -123,12 +130,7 @@ uv tool install --python 3.12 .
 jobhunt setup
 ```
 
-Your personal data goes in the folder you pick in `jobhunt setup` (default `~/jobhunt/data`), not in the clone. To update, in the clone:
-
-```bash
-git pull
-uv tool install --force --reinstall-package jobhunt --python 3.12 .
-```
+Your personal data goes in the folder you pick in `jobhunt setup` (default `~/jobhunt/data`), not in the clone. To update, `jobhunt update` runs `git pull` in the clone and installs it again.
 
 </details>
 
@@ -182,7 +184,7 @@ codex plugin marketplace add jojaden/jobhunt
 codex plugin add jobhunt@jobhunt
 ```
 
-- **The plugin only points the way.** The instructions (`SKILL.md`, `modes/`, `references/`) and the scripts come with the `jobhunt` command, so the one-line install above is still needed; if it is missing, the plugin asks for it on first use. That keeps instructions and scripts on the same version, and updating with the installer updates the instructions too, without fetching the plugin again.
+- **The plugin only points the way.** The instructions (`SKILL.md`, `modes/`, `references/`) and the scripts come with the `jobhunt` command, so the one-line install above is still needed; if it is missing, the plugin asks for it on first use. That keeps instructions and scripts on the same version, and `jobhunt update` updates the instructions too, without fetching the plugin again.
 - **So the skill doesn't show up twice,** `jobhunt setup` makes no link for an agent that has the plugin. If you ran the installer first, run `jobhunt setup --skill-only` once after installing the plugin to remove the link.
 - Slash commands carry the plugin name: `/jobhunt:jobhunt scan`.
 
@@ -210,10 +212,12 @@ If you switched from an old git install, the data folder also has `.old-repo/` (
 Updating:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jojaden/jobhunt/main/install.sh | bash
+jobhunt update
 ```
 
-Versions are git tags such as `v1.4.0`. Updating with the install command shows what changed since your version, and `jobhunt changes <old version>` shows it later ([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). Versions that change a `data/` format say how to move your files. `jobhunt --version` prints the installed version.
+It replaces only the tool and leaves your data folder, skill links and build environment as they are (it fetches again from the repository you installed from; pin a version with `JOBHUNT_REF=v1.4.0`). If you work in a clone of the repository, `python3 scripts/cli.py update` on `main` runs `git pull` and, when dependencies changed, sets up the build environment again. An older install without `jobhunt update` updates by running the install command once more.
+
+Versions are git tags such as `v1.4.0`. Updating shows what changed since your version, and `jobhunt changes <old version>` shows it later ([`CHANGELOG.md`](CHANGELOG.md), [Releases](https://github.com/jojaden/jobhunt/releases)). Versions that change a `data/` format say how to move your files. `jobhunt --version` prints the installed version.
 
 Starting each agent:
 
@@ -252,6 +256,7 @@ jobhunt company 가나다랩              # Wanted company info (average salary,
 jobhunt tracker report --alive       # the same rows as a text table
 jobhunt tracker set 3 지원함          # record an application
 jobhunt render data/resumes/<name>.yaml   # build a resume (YAML → PDF · PNG, checks included)
+jobhunt update                       # update to the new version (data and skill links stay)
 jobhunt where                        # where your data folder is (jobhunt --help: every command)
 ```
 
@@ -298,7 +303,21 @@ The AI agent classifies the posting line by line (have you done this work, is ea
 
 After the calculation the agent rereads the whole posting (seniority and scope, what the hiring side weighs) and records any adjustment with its reason in the judgment file ([`references/judgment.md`](references/judgment.md)). Location and compensation are pass/fail rules, not score components. The criteria live in [`references/scoring.md`](references/scoring.md).
 
-## 📝 3. Tailored Resume
+## 🧭 3. Prepare for a Posting
+
+Say "A사, B사 준비해줘" after reading the report and [`modes/prep.md`](modes/prep.md) builds a preparation file per posting in `data/job_postings/<posting>.prep.yaml`. A posting without an evaluation is evaluated first.
+
+| Part | What it holds |
+|---|---|
+| Company | product, leaders, culture, the traits it hires for, 국민연금-based headcount, average salary, hires and leavers, revenue and operating profit by year, reputation, recent issues; every fact with a source number, anything not found marked "확인 못 함" |
+| Role | each skill or experience the posting asks for ↔ your evidence (met / partly / missing) and what to prepare for each gap |
+| Stages and tests | what each stage checks and how to prepare, the likely form of coding tests, take-home tasks and live coding with its basis, interview reports |
+| Likely questions | 8–15 questions from your resume, the posting and interview reports, two follow-ups deep, the skeleton of the answer and its evidence file |
+| What to prepare | one task per line, why, priority (high, normal, low), done or not |
+
+`jobhunt report` builds a page per preparation file and adds a "준비 자료 · 남은 n" button to the posting's row. The script computes operating margin and year-over-year growth. When preparation is done the agent asks whether to tailor the resume for the posting, and the resume, cover letter and interview modes read this file.
+
+## 📝 4. Tailored Resume
 
 [`modes/tailor.md`](modes/tailor.md) drives the steps. If an evaluation exists, the resume plan in its "application strategy" becomes the default.
 
@@ -356,7 +375,7 @@ The tool (`SKILL.md`, `modes/`, `scripts/`, `references/`) is installed and upda
 ## 📁 Project Structure
 
 ```
-install.sh                   One-line install (uv → install or update jobhunt → jobhunt setup, moves an old git install)
+install.sh                   One-line install (uv → install jobhunt → jobhunt setup, moves an old git install)
 pyproject.toml               The jobhunt package (the command uv tool install installs)
 .claude-plugin/ plugin/      Claude Code and Codex plugin marketplace and plugin (points to the installed skill)
 AGENTS.md                    Working guide for every AI agent (CLAUDE.md imports it)
@@ -384,6 +403,7 @@ scripts/
   check.py · check_links.py  Post-build checks, link reachability
   git_log.sh                 Extract your own commits from a local git repo
   setup.sh · setup_ui.py     Install: skill link + Chromium, fonts, poppler (run by jobhunt setup) · the selection screen
+  update.sh                  Update (jobhunt update: an installed tool is fetched and installed again, a clone runs git pull)
   privacy_check.py           Keeps personal data out of commits (CI, .githooks/pre-commit)
 references/
   sources.md                 Per-site collection methods

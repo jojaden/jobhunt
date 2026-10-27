@@ -31,6 +31,7 @@ COMMANDS = {
     "cover-check": ("cover_check.py", "자기소개서 답변 검사"),
     "eval-golden": ("eval_golden.py", "판정 정답 세트와 비교"),
     "git-log": ("git_log.sh", "로컬 git 저장소에서 내 커밋 로그"),
+    "update": ("update.sh", "새 버전으로 업데이트 (개인 자료 폴더 · 스킬 연결은 그대로, 설치 절차를 다시 밟지 않음)"),
     "setup": ("setup.sh", "개인 자료 폴더 · 스킬 연결 · Chromium · 폰트 · poppler (터미널이면 고르는 화면, --yes 는 묻지 않고 전부)"),
 }
 # 설치본의 개인 자료 폴더에 두는 안내. 스킬을 읽지 않는 에이전트도 이 폴더에서 실행하면 설치된 지침을 찾아간다

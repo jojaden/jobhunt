@@ -4,7 +4,7 @@
 #   privacy — data/ 의 개인 자료가 추적되고 있으면 실패 (scripts/privacy_check.py)
 #   build   — Ubuntu 에서 scripts/setup.sh 로 설치한 뒤 예시 이력서를 디자인 A·B·C 로 빌드 (render.py 가 check.py 까지 돌린다)
 #   package — 휠을 만들어 uv tool 로 설치한 jobhunt 명령이 저장소 밖에서 도는지 (함께 배포한 references/ 를 쓰는지)
-#   migrate — 예전 git 설치(v1.1.0)에서 install.sh 로 전환: data/ 보존, .old-repo/, 스킬 다시 연결, cron 이어 주기, 재실행, 중간에 멈춘 전환 이어 하기
+#   migrate — 예전 git 설치(v1.1.0)에서 install.sh 로 전환: data/ 보존, .old-repo/, 스킬 다시 연결, cron 이어 주기, 재실행, jobhunt update, 중간에 멈춘 전환 이어 하기
 name: test
 
 on:
@@ -168,6 +168,11 @@ jobs:
           JOBHUNT_REPO="file://$GITHUB_WORKSPACE" JOBHUNT_REF="$(git rev-parse HEAD)" SKILLS_DIR="$RUNNER_TEMP/skills" \
             bash install.sh --skill-only | tee "$RUNNER_TEMP/second.log"
           grep -q "이미 최신" "$RUNNER_TEMP/second.log"
+      - name: jobhunt update 는 설치 절차 없이 같은 저장소에서 갱신
+        run: |
+          JOBHUNT_REF="$(git rev-parse HEAD)" "$(uv tool dir --bin)/jobhunt" update | tee "$RUNNER_TEMP/update.log"
+          grep -q "이미 최신" "$RUNNER_TEMP/update.log"
+          "$(uv tool dir --bin)/jobhunt" where | grep -q "$HOME/jobhunt/data"
       - name: 중간에 멈춘 전환을 다시 실행하면 이어서 옮김
         run: |
           half="$RUNNER_TEMP/half"
