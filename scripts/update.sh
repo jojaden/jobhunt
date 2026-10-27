@@ -36,21 +36,28 @@ update_installed() {
   command -v uv >/dev/null 2>&1 || export PATH="$HOME/.local/bin:$PATH"
   command -v uv >/dev/null 2>&1 || die "uv 를 찾지 못했습니다. 설치 명령(install.sh)으로 다시 설치하세요."
   local py bin src old new ref="${JOBHUNT_REF:-}"
-  py="$(uv tool dir)/jobhunt/bin/python" bin="$(uv tool dir --bin)/jobhunt"
+  # 도구의 가상환경: <도구 폴더>/jobhunt/lib/pythonX.Y/site-packages/jobhunt 에서 네 단계 위 (UV_TOOL_DIR 로 옮긴 설치도 같다)
+  local venv; venv="$(cd "$HERE/../../../.." && pwd -P)"
+  py="$venv/bin/python" bin="$venv/bin/jobhunt"
+  export UV_TOOL_DIR="$(dirname "$venv")"   # 다시 설치도 지금 설치된 도구 폴더에 (UV_TOOL_DIR 를 이번에 주지 않았어도)
   # 설치할 때 받은 곳 (pip 의 direct_url.json): 'vcs <주소>' · 'dir <폴더>' · 'archive <주소>'
   # 파이썬은 -I 로: 실행한 폴더에 있는 파일(copy.py 등)이 표준 모듈을 가리지 않게
   src="$("$py" -I - <<'EOF'
 import json
 from importlib import metadata
+from urllib.parse import urlsplit
+from urllib.request import url2pathname
 d = json.loads(metadata.distribution("jobhunt").read_text("direct_url.json") or "{}")
 kind = "vcs" if "vcs_info" in d else "dir" if "dir_info" in d else "archive"
-print(kind, d.get("url", ""))
+url = d.get("url", "")
+# 받은 폴더는 파일 주소(file:///…/%EB%B0%9B%EC%9D%80%20%ED%8F%B4%EB%8D%94)라 경로로 풀어 둔다
+print(kind, url2pathname(urlsplit(url).path) if kind == "dir" and url.startswith("file:") else url)
 EOF
 )"
   old="$("$bin" --version | cut -d' ' -f2-)"
   case "$src" in
-    dir\ file://*)
-      local dir="${src#dir file://}"
+    dir\ /*)
+      local dir="${src#dir }"
       [ -d "$dir/.git" ] || die "받은 폴더($dir)가 없거나 git 저장소가 아닙니다. 설치 명령(install.sh)으로 다시 설치하세요."
       say "받은 폴더에서 새 버전 받기: $dir"
       old="$(git -C "$dir" rev-parse HEAD)"   # 받은 폴더 설치는 버전에 커밋이 없어 git 으로 비교한다
@@ -90,13 +97,13 @@ update_checkout() {
 }
 
 main() {
-  case "$HERE" in
-    */tools/jobhunt/lib/*/site-packages/jobhunt) update_installed ;;   # uv tool 설치본
-    *)
-      [ -e "$(dirname "$HERE")/.git" ] || die "설치본도 git 저장소도 아닙니다 ($HERE). 설치 명령(install.sh)으로 설치하세요."
-      update_checkout
-      ;;
-  esac
+  # 설치본은 references/ 를 코드와 같은 폴더에 함께 담는다 (jobkit.RES 와 같은 판별, 도구 폴더 위치와 무관)
+  if [ -d "$HERE/references" ]; then
+    update_installed
+  else
+    [ -e "$(dirname "$HERE")/.git" ] || die "설치본도 git 저장소도 아닙니다 ($HERE). 설치 명령(install.sh)으로 설치하세요."
+    update_checkout
+  fi
   echo "✓ 업데이트 끝. 개인 자료와 스킬 연결은 그대로입니다."
 }
 
