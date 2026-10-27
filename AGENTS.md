@@ -70,6 +70,7 @@ python3 scripts/eval_golden.py <folder>             # classification drift vs ex
 python3 scripts/tracker.py add|set|report [--alive]
 python3 scripts/cover_check.py <cover.yaml>          # cover-letter answers: character counts vs limit + style rules
 python3 scripts/discover.py collect|probe|report|missing|set <file.tsv>|promote [--min S] [--dry-run]
+python3 scripts/company.py <Wanted posting URL | company URL | name> [--source N]   # company numbers → YAML lines for a prep file
 
 python3 assets/src/render.py                      # regenerate README preview PNGs
 ```
