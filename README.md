@@ -246,6 +246,7 @@ jobhunt weekly                       # 수집 → 마감 확인 → 현황표 (L
 jobhunt scan --dry-run               # 파일을 쓰지 않고 수집 결과만 보기
 jobhunt scan --add found.yaml        # 손으로 찾은 공고를 중복 확인·필터를 거쳐 대기함에 (에이전트가 씀)
 jobhunt report                       # 공고 현황표 HTML (data/search/reports/postings.html)
+jobhunt company 가나다랩              # 원티드 회사 정보(평균연봉·국민연금 인원·매출)를 준비 자료 YAML 로
 jobhunt tracker report --alive       # 같은 내용을 텍스트 표로 (마감 여부 포함)
 jobhunt tracker set 3 지원함          # 지원 기록
 jobhunt render data/resumes/<이름>.yaml   # 이력서 빌드 (yaml → PDF · PNG, 검사까지)
@@ -368,6 +369,7 @@ scripts/
   jobkit.py                  공통 핵심: 경로, HTTP, 필터, 중복 판정, 수집 기록·대기함·지원 표 읽기
   scan.py · providers/       공고 수집 (사이트별 모듈)
   discover.py                회사 찾기 (채용 사이트·채용 시스템 판별 → 수집 대상 추가)
+  company.py                 회사 숫자 (원티드 회사 정보 → 준비 자료 YAML, jobhunt company)
   alive.py                   마감 확인
   score.py                   판정 파일 → 점수 계산, 대기함 반영 (score init 은 판정 뼈대)
   tracker.py                 지원 현황 기록, 통합 현황표

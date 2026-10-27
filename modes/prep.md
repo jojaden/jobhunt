@@ -17,11 +17,13 @@ Work through the chosen postings one at a time and tell the user which one is in
    | leaders: CEO and C-level, background, recent changes | news, company site | `company.leaders` |
    | culture and how the team works (deploys, on-call, review) | tech blog, talks, posting wording | `company.culture` |
    | 인재상 in the company's own words | career page | `company.talent` |
-   | headcount, average salary, hires and leavers (국민연금 based) | Wanted company page (`wanted.co.kr/company/<id>`, shows 국민연금 가입 사원수, 평균연봉, 매출액 without login), other public company-info pages | `company.numbers` |
+   | headcount, average salary, hires and leavers (국민연금 based) | `jobhunt company <Wanted posting URL, Wanted company URL or company name> --source <next free source id>`: reads the Wanted company page (no key) and prints `sources` and `company.numbers`/`leaders` lines to merge into the prep file; other public company-info pages for what it lacks | `company.numbers` |
    | revenue and operating profit by year | DART audit reports, news, company-info pages | `company.finance` (억 원; the page computes margin and growth) |
    | reviews: rating, count, recurring praise and complaints | 잡플래닛, 블라인드 — only what shows without login; summarize, don't copy | `company.reviews` |
    | recent issues: funding, layoffs, incidents, lawsuits, leadership change | news | `company.issues` |
    | what the team owns, its stack and scale | posting, tech blog, GitHub | `team` |
+
+   `jobhunt company` exits 2 with a list of Wanted companies when the name matches several: pick the right one with the user's posting in mind and rerun with its company URL. Copy its values as printed; it writes "확인 못 함" for what the page does not show.
 
    Do not get around logins, paywalls, WAFs or rate limits. A 국민연금-based average salary is an estimate: the contribution ceiling (기준소득월액 상한) pulls high salaries down and executives are included — say so in `note`.
 3. **Role analysis.** Every skill or experience the posting asks for, against the user's evidence (fact files only, `_shared.md` "Facts and evidence"): 충족 / 부분 / 없음, the evidence, and what to prepare for each 부분 or 없음 → `role.wants`.

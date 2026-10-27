@@ -248,6 +248,7 @@ jobhunt weekly                       # collect → liveness check → overview (
 jobhunt scan --dry-run               # see what would be collected without writing files
 jobhunt scan --add found.yaml        # put postings found by hand through dedup and filters into the queue (the agent uses it)
 jobhunt report                       # posting report as HTML (data/search/reports/postings.html)
+jobhunt company 가나다랩              # Wanted company info (average salary, 국민연금 headcount, revenue) as prep-file YAML
 jobhunt tracker report --alive       # the same rows as a text table
 jobhunt tracker set 3 지원함          # record an application
 jobhunt render data/resumes/<name>.yaml   # build a resume (YAML → PDF · PNG, checks included)
@@ -370,6 +371,7 @@ scripts/
   jobkit.py                  Shared core: paths, HTTP, filters, duplicate checks, reading the scan log, queue and tracker
   scan.py · providers/       Posting collection (one module per site)
   discover.py                Company discovery (find career sites and hiring systems, add them to the scan)
+  company.py                 Company numbers (Wanted company info → prep-file YAML, jobhunt company)
   alive.py                   Open/closed check
   score.py                   Judgment file → score, applied to the queue (score init drafts a judgment)
   tracker.py                 Application tracker and combined overview

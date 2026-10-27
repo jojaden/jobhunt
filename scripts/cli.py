@@ -24,6 +24,7 @@ COMMANDS = {
     "tracker": ("tracker.py", "지원 현황표"),
     "report": ("report_html.py", "공고 현황표 HTML"),
     "discover": ("discover.py", "회사 찾기"),
+    "company": ("company.py", "회사 숫자: 원티드 회사 정보 → 준비 자료 YAML"),
     "render": ("render.py", "이력서 빌드 (yaml → PDF · PNG)"),
     "check": ("check.py", "이력서 검사"),
     "check-links": ("check_links.py", "링크 확인"),

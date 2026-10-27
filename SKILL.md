@@ -45,6 +45,7 @@ jobhunt tracker             application log (add/set) and combined report table 
 jobhunt score               posting score (line-level judgment file → per-item scores)
 jobhunt cover-check         cover-letter answers: character counts per limit + style rules
 jobhunt report              posting report as one HTML file, plus a page per prepared posting
+jobhunt company             company numbers from the Wanted company page (국민연금-based average salary, headcount, revenue, CEO) as YAML lines for a prep file
 jobhunt discover            company discovery (tech blogs · GitHub · Wanted · known companies → career site and ATS detection → sources.yaml)
 jobhunt weekly              the LLM-free part of the weekly scan (scan → alive → report)
 jobhunt where               where the jobhunt home and the skill folder are
