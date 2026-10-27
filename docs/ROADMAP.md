@@ -1,6 +1,6 @@
-# 로드맵: 공고 찾기 → 평가 → 맞춤 이력서
+# 로드맵: 공고 찾기 → 평가 → 공고 준비 → 맞춤 이력서
 
-목표: 한국 개발자 채용 공고를 찾고, 내 경력에 맞는 공고를 골라, 공고마다 최적화한 이력서를 만든다. 쓸수록 `data/`에 개인 기준이 쌓여 선별이 정확해진다.
+목표: 한국 개발자 채용 공고를 찾고, 내 경력에 맞는 공고를 골라, 고른 공고마다 회사·직무·전형을 준비하고 최적화한 이력서를 만든다. 쓸수록 `data/`에 개인 기준이 쌓여 선별이 정확해진다.
 
 모드로 나눈 구성과 개인화 저장 구조는 [career-ops](https://github.com/santifer/career-ops)의 아이디어를 참고했다. 이 저장소는 한국 공고 수집·평가, 이력서 빌드(`scripts/render.py`), 지원과 면접 준비에 집중한다.
 
@@ -8,7 +8,7 @@
 
 | 원칙 | 이 저장소에서 |
 |---|---|
-| 로컬 우선 | 모든 자료는 내 PC의 파일. 서버·계정 없음 |
+| 로컬 우선 | 모든 자료는 내 PC의 파일. 서버·계정 없음. 공공 API(국민연금·DART)는 사용자 본인 키로만, 쓰지 않아도 됨 |
 | 파일이 원본 | 사람이 읽고 diff할 수 있는 md·yaml·tsv가 원본. 캐시·DB는 파생물 |
 | 시스템 / 사용자 파일 분리 | 도구(`SKILL.md`, `modes/`, `scripts/`, `references/`)는 git에 올리고 `uv tool install`로 설치한다. 개인 자료는 jobhunt 홈(`~/jobhunt/data`)에만 두고 올리지 않는다 |
 | 사람이 최종 결정 | 준비·평가까지만. 지원서 제출은 사용자가 직접 |
@@ -24,9 +24,9 @@
 |---|---|
 | `SKILL.md` | 진입점. 요청을 모드로 연결 |
 | `modes/_shared.md` | 모든 모드 공통 규칙, 한국 채용 용어, 파일 지도 |
-| `modes/onboard.md` · `scan.md` · `evaluate.md` · `tailor.md` · `track.md` | 모드별 절차 |
+| `modes/onboard.md` · `scan.md` · `evaluate.md` · `prep.md` · `tailor.md` · `track.md` | 모드별 절차 |
 | `references/sources.md` | 채용 사이트별 수집 방법(엔드포인트, 상세 본문 위치, 마감 판정) |
-| `scripts/` | 빌드·검사, 공고 수집(`scan.py`, `providers/`), 마감 확인(`alive.py`), 지원 현황(`tracker.py`), 주간 실행(`weekly.py`), `jobhunt` 명령(`cli.py`) |
+| `scripts/` | 빌드·검사, 공고 수집(`scan.py`, `providers/`), 마감 확인(`alive.py`), 지원 현황(`tracker.py`), 공고 현황표와 준비 쪽(`report_html.py`, `prep_page.py`), 회사 숫자(`company.py`, 키가 있으면 `nps.py`·`dart.py`, 키 관리 `keys.py`), 주간 실행(`weekly.py`), 업데이트(`update.sh`), `jobhunt` 명령(`cli.py`) |
 
 **사용자 파일 (`data/`, git 제외, 구조와 예시만 올라감)**
 
@@ -43,9 +43,11 @@
 | `data/search/blacklist.md` | 지원하지 않을 회사 | `data/blacklist.md` |
 | `data/search/inbox/` | scan.py가 받은 공고 본문 (1차 선별 입력) | — |
 | `data/search/reports/` | `jobhunt weekly` 주간 보고 | — |
-| `data/job_postings/` | 공고 원문(`*.md`)과 평가(`*.eval.md`) | `jds/` + `reports/` |
+| `data/job_postings/` | 공고 원문(`*.md`), 평가(`*.eval.md`), 준비 자료(`*.prep.yaml`) | `jds/` + `reports/` |
 | `data/applications/tracker.md` | 지원 현황표 | `data/applications.md` |
 | `data/resumes/`, `data/output/` | 확정 yaml, PDF·PNG | `output/` |
+
+공공데이터포털·OpenDART 키는 `data/` 밖 `~/.config/jobhunt/keys`(권한 600)나 환경 변수에 둔다. 계정에 묶인 개인 키라 어디에도 올리지 않는다.
 
 ## 흐름
 
@@ -54,9 +56,14 @@ scan ──► search/pipeline.md ──► 1차 선별(brief.md) ──► eval
                                                             │               │
                                                             └─► applications/tracker.md
                                                                             │
+                                                  report (공고 현황표) ──► 사용자가 공고를 고름
+                                                                            │
+          prep (회사·직무 조사, 전형·시험, 예상 질문, 더 준비할 것 → job_postings/*.prep.yaml,
+                회사 숫자는 jobhunt company, 현황표의 그 공고 줄에 준비 쪽)
+                                                                            │
                                                tailor (base yaml → 공고별 yaml → PDF → 검사)
                                                                             │
-                                                              사용자가 직접 지원 → track
+                                                     사용자가 직접 지원 → track → interview
 ```
 
 ## 한국 공고 소스 (2026-09-29 확인)
@@ -73,6 +80,8 @@ scan ──► search/pipeline.md ──► 1차 선별(brief.md) ──► eval
 
 원티드·점핏·기업 사이트 JSON은 비공식 엔드포인트다. 개인 용도로 요청 간격을 두고 쓰며, 형식이 바뀌면 `references/sources.md`를 고친다.
 
+준비 단계의 회사 숫자(2026-10-27 확인)는 원티드 회사 쪽의 '기업 정보' 표(키 없음)를 기본으로, 사용자 키가 있으면 국민연금 가입 사업장 내역(공공데이터포털: 가입자 수, 고지액 기반 평균연봉 추정, 입사·퇴사)과 OpenDART(대표자, 사업보고서 주요계정이나 감사보고서 손익계산서의 매출·영업이익)를 더한다. 주소와 응답 구조는 `references/sources.md`.
+
 ## 단계
 
 | 단계 | 내용 | 상태 |
@@ -85,3 +94,5 @@ scan ──► search/pipeline.md ──► 1차 선별(brief.md) ──► eval
 | 5 | 학습 루프: 결과(서류 합격·탈락)와 피드백을 모아 선별 기준·강조점 조정 제안 | 예정 |
 | 6 | 속도: 사이트별 동시 수집·마감 확인, gzip, 1차 선별이 읽는 양 축소(`scan.py --add`, `score.py apply`), 요청 제한으로 일부만 받으면 보고에 표시 | 완료 (2026-10-13) |
 | 7 | 배포: `uv tool install` 로 설치하는 `jobhunt` 명령, 개인 자료를 `~/jobhunt` 로 분리, 기존 git 설치 전환, Claude Code·Codex 플러그인 | 완료 (2026-10-13) |
+| 8 | 공고 준비(#82): 현황표에서 고른 공고마다 `prep` 모드가 회사·직무·전형·예상 질문·더 준비할 것을 `*.prep.yaml` 로 정리하고 현황표 줄에서 준비 쪽으로 연결(#83), 원티드 회사 정보로 회사 숫자(`jobhunt company`, #84), 사용자 키로 국민연금·DART 연동과 `jobhunt keys`(#87) | 완료 (2026-10-27) |
+| 9 | 업데이트(#85): `jobhunt update` 가 설치 절차 없이 도구만 새 버전으로 (설치본은 다시 받아 설치, clone 폴더는 `main` 에서 `git pull`) | 완료 (2026-10-27) |
