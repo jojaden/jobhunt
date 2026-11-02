@@ -94,8 +94,10 @@ def info_table(page: str) -> Dict[str, str]:
 def fetch(cid: int) -> Tuple[str, Dict[str, str]]:
     """(회사 이름, 기업 정보 표)."""
     page = _get(f"{BASE}/company/{cid}", "회사 쪽", accept="text/html")
-    title = re.search(r"<title>(.*?)(?: 기업정보| \|)", page, re.S)
-    return (K.html_text(title.group(1)) if title else ""), info_table(page)
+    title = re.search(r"<title[^>]*>(.*?)(?: 기업정보| \|)", page, re.S)   # <title data-next-head=""> (2026-11-02)
+    if not title:                                # 이름 없이 국민연금·DART 를 찾으면 엉뚱한 사업장이 나온다
+        raise K.ShapeError("원티드 회사 쪽에 회사 이름(<title>) 없음")
+    return K.html_text(title.group(1)), info_table(page)
 
 
 def to_prep(cid: int, name: str, table: Dict[str, str], source: int, today: str) -> Dict[str, Any]:
