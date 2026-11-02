@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""company: 원티드 회사 정보 표 → 준비 자료 YAML. 응답은 실제 구조를 따른 가상 회사다 (2026-10-27 실측 구조)."""
+"""company: 원티드 회사 정보 표 → 준비 자료 YAML. 응답은 실제 구조를 따른 가상 회사다 (2026-10-27 실측 구조, <title> 속성은 2026-11-02)."""
 import contextlib
 import io
 import unittest
@@ -20,7 +20,7 @@ def _row(k, v, unit=""):
             f'<dd class="CompanyInfoTable_definition__dd__c3">{v}{tail}</dd></dl>')
 
 
-PAGE = ("<html><head><title>가나다랩(Ganada) 기업정보 - 채용 3건, 평균연봉 6,100만원, 인원 80명 | 원티드</title></head><body>"
+PAGE = ('<html><head><title data-next-head="">가나다랩(Ganada) 기업정보 - 채용 3건, 평균연봉 6,100만원, 인원 80명 | 원티드</title></head><body>'
         '<section><h2>기업 정보</h2><div class="CompanyInfoTable_wrapper__z">'
         + _row("연혁", '9<!-- -->년 (<time dateTime="2017">2017</time>년 설립)')
         + _row("매출액", "120억 5,000만", "원") + _row("평균연봉", "6,100", "만원") + _row("대표자명", "김가나")
@@ -78,6 +78,12 @@ class Info(unittest.TestCase):
 
     def test_no_table(self):
         with replay({COMPANY: {"html": "<html><body><h2>기업 정보</h2></body></html>"}}):
+            with self.assertRaises(K.ShapeError):
+                company.fetch(900)
+
+    def test_no_name(self):
+        """이름을 못 읽으면 빈 이름으로 국민연금·DART 를 찾지 않고 형식 변경으로 멈춘다."""
+        with replay({COMPANY: {"html": PAGE.replace("<title", "<meta name=").replace("</title>", "")}}):
             with self.assertRaises(K.ShapeError):
                 company.fetch(900)
 
