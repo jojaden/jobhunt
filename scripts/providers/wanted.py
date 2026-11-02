@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
-"""원티드. 목록 chaos/navigation, 상세 v4/jobs/{id} (2026-09-29 실측)."""
+"""원티드. 목록 chaos/navigation, 상세 v4/jobs/{id} (2026-09-29 실측).
+
+목록은 한 쪽에 30개까지: limit 이 30 을 넘으면 오류 없이 빈 목록이 온다 (2026-11-02 실측).
+"""
 import re
 from typing import List, Optional
 
 from jobkit import Job, ShapeError, get_json
 
 BASE = "https://www.wanted.co.kr"
+PAGE = 30
 
 
 def collect(cfg: dict) -> List[Job]:
     q = "&".join(f"job_ids={i}" for i in cfg.get("job_ids", [872, 674, 10110]))
     url = (f"{BASE}/api/chaos/navigation/v1/results?job_group_id={cfg.get('job_group_id', 518)}&{q}"
-           f"&country=kr&job_sort=job.latest_order&years={cfg.get('years', -1)}&locations=all&limit=100&offset=0")
+           f"&country=kr&job_sort=job.latest_order&years={cfg.get('years', -1)}&locations=all&limit={PAGE}&offset=0")
     jobs = []
-    for _ in range(cfg.get("max_pages", 15)):
+    for _ in range(cfg.get("max_pages", 50)):
         d = get_json(url)
         if "data" not in d:
             raise ShapeError("원티드 목록에 data 없음")

@@ -3,7 +3,7 @@
     "name": "목록 두 쪽 · 본문 · 마감",
     "cfg": {"job_ids": [872], "job_group_id": 518, "years": -1, "max_pages": 3},
     "responses": {
-      "https://www.wanted.co.kr/api/chaos/navigation/v1/results?job_group_id=518&job_ids=872&country=kr&job_sort=job.latest_order&years=-1&locations=all&limit=100&offset=0": {"json": {
+      "https://www.wanted.co.kr/api/chaos/navigation/v1/results?job_group_id=518&job_ids=872&country=kr&job_sort=job.latest_order&years=-1&locations=all&limit=30&offset=0": {"json": {
         "data": [{"id": 1001, "position": "백엔드 개발자 (Go)", "company": {"name": "가나다랩"},
                   "address": {"location": "서울", "district": "강남구"}, "annual_from": 3, "annual_to": 7}],
         "links": {"next": "/api/chaos/navigation/v1/results?page=2"}}},
@@ -31,7 +31,7 @@
     "name": "목록 형식 변경",
     "cfg": {"job_ids": [872], "max_pages": 1},
     "responses": {
-      "https://www.wanted.co.kr/api/chaos/navigation/v1/results?job_group_id=518&job_ids=872&country=kr&job_sort=job.latest_order&years=-1&locations=all&limit=100&offset=0": {"json": {}}
+      "https://www.wanted.co.kr/api/chaos/navigation/v1/results?job_group_id=518&job_ids=872&country=kr&job_sort=job.latest_order&years=-1&locations=all&limit=30&offset=0": {"json": {}}
     },
     "error": "ShapeError"
   }
